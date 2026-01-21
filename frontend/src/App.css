@@ -1,0 +1,20 @@
+.grid-bg {
+    background-image: 
+        linear-gradient(to right, #f1f5f9 1px, transparent 1px),
+        linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+    background-size: 4rem 4rem;
+}
+
+.crosshair {
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    border-left: 2px solid #cbd5e1;
+    border-top: 2px solid #cbd5e1;
+}
+
+.glass-effect {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}

@@ -1,0 +1,124 @@
+{
+  "identity": {
+    "name": "VeriSure",
+    "tagline": "Advanced AI Origin & Scam Forensics",
+    "tone": "Forensic, Authoritative, Clinical, Reassuring",
+    "metaphor": "The Digital X-Ray",
+    "target_audience": "Non-technical Indian citizens"
+  },
+  "typography": {
+    "primary_font": "Inter",
+    "heading_font": "Azeret Mono",
+    "font_import_url": "https://fonts.googleapis.com/css2?family=Azeret+Mono:ital,wght@0,100..900;1,100..900&family=Inter:wght@100..900&display=swap",
+    "usage": {
+      "h1": "font-mono font-bold text-4xl md:text-6xl tracking-tight text-slate-900",
+      "h2": "font-mono font-semibold text-3xl tracking-tight text-slate-900",
+      "h3": "font-mono font-medium text-xl text-slate-800",
+      "body": "font-sans text-base text-slate-600 leading-relaxed",
+      "label": "font-mono text-xs uppercase tracking-widest text-slate-500",
+      "data": "font-mono text-sm text-slate-700"
+    }
+  },
+  "colors": {
+    "theme": "light",
+    "palette": {
+      "background": "#F8FAFC",
+      "surface": "#FFFFFF",
+      "primary": "#0F172A",
+      "secondary": "#F1F5F9",
+      "accent": "#2563EB",
+      "border": "#E2E8F0",
+      "text_primary": "#0F172A",
+      "text_secondary": "#64748B"
+    },
+    "semantic": {
+      "high_risk": "#E11D48",
+      "medium_risk": "#D97706",
+      "low_risk": "#059669",
+      "neutral": "#64748B",
+      "ai_origin": "#7C3AED",
+      "human_origin": "#059669"
+    },
+    "gradients": {
+      "hero": "bg-gradient-to-b from-slate-50 to-slate-100",
+      "scan_overlay": "bg-gradient-to-b from-transparent via-blue-500/10 to-transparent"
+    }
+  },
+  "visual_enhancers": {
+    "border_radius": "rounded-none md:rounded-sm",
+    "shadows": "shadow-[0_1px_2px_0_rgba(0,0,0,0.05)]",
+    "glass": "bg-white/80 backdrop-blur-md border-b border-slate-200/50",
+    "decorations": {
+      "crosshairs": "absolute w-4 h-4 border-l-2 border-t-2 border-slate-300",
+      "scanline": "absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(37,99,235,0.03)_50%)] bg-[length:100%_4px] pointer-events-none",
+      "grid_bg": "bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem]"
+    }
+  },
+  "layout_strategies": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "section_spacing": "py-16 md:py-24",
+    "grids": {
+      "landing_hero": "grid grid-cols-1 lg:grid-cols-12 gap-12 items-center",
+      "bento_results": "grid grid-cols-1 md:grid-cols-3 gap-6",
+      "input_tabs": "w-full max-w-3xl mx-auto"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-3 font-mono text-sm uppercase tracking-wider transition-all active:scale-95",
+      "secondary": "bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-8 py-3 font-mono text-sm uppercase tracking-wider",
+      "destructive": "bg-rose-600 text-white hover:bg-rose-700 rounded-sm"
+    },
+    "cards": {
+      "base": "bg-white border border-slate-200 p-6 relative overflow-hidden",
+      "interactive": "hover:border-blue-500/50 transition-colors cursor-pointer"
+    },
+    "inputs": {
+      "base": "bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-sm font-mono text-sm"
+    },
+    "badges": {
+      "risk_high": "bg-rose-50 text-rose-700 border border-rose-200 px-2 py-1 rounded-full text-xs font-mono uppercase",
+      "risk_medium": "bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-full text-xs font-mono uppercase",
+      "risk_low": "bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded-full text-xs font-mono uppercase"
+    }
+  },
+  "motion": {
+    "scan_animation": "animate-[scan_2s_ease-in-out_infinite]",
+    "fade_in": "animate-in fade-in duration-500",
+    "slide_up": "animate-in slide-in-from-bottom-4 duration-500"
+  },
+  "images": {
+    "hero_bg": {
+      "url": "https://images.pexels.com/photos/5473955/pexels-photo-5473955.jpeg",
+      "alt": "Abstract digital security data visualization",
+      "usage": "Hero section background with heavy overlay opacity-10"
+    },
+    "trust_indicator": {
+      "url": "https://images.pexels.com/photos/12375509/pexels-photo-12375509.jpeg",
+      "alt": "Digital fingerprint scan",
+      "usage": "About section or Trust features"
+    },
+    "user_context": {
+      "url": "https://images.pexels.com/photos/17611929/pexels-photo-17611929.jpeg",
+      "alt": "Indian person using smartphone seriously",
+      "usage": "Context section showing real-world usage"
+    }
+  },
+  "instructions_to_main_agent": [
+    "IMPLEMENTATION: Use the 'Azeret Mono' font for all headings to establish the forensic identity.",
+    "LAYOUT: Use the 'Bento' grid for the Results Page. Do not stack everything vertically.",
+    "VISUALS: Add the 'scanline' CSS class to the analysis progress container.",
+    "COMPONENTS: Customize Shadcn components to remove rounded-xl and use rounded-sm or rounded-none for a stricter, more clinical look.",
+    "COLOR: Use the 'semantic' colors strictly for verdicts. Do not use generic green/red.",
+    "ACCESSIBILITY: Ensure high contrast for all text. The 'slate-500' labels must be legible.",
+    "DATA-TESTID: Add data-testid to all inputs, buttons, and result cards."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do not use gradients for text.",
+    "Avoid 'Inter' for headings.",
+    "Use 'sonner' for all toast notifications.",
+    "Ensure all interactive elements have hover states.",
+    "Do not center-align the entire app.",
+    "Use 'lucide-react' for icons."
+  ]
+}
