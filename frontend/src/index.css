@@ -83,6 +83,27 @@ code {
     }
 }
 
+/* Font Size Accessibility */
+html[data-font-size="normal"] {
+    font-size: 16px;
+}
+
+html[data-font-size="large"] {
+    font-size: 18px;
+}
+
+html[data-font-size="xlarge"] {
+    font-size: 20px;
+}
+
+/* Larger button sizing for accessibility */
+html[data-font-size="large"] button,
+html[data-font-size="xlarge"] button {
+    min-height: 48px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
 .scanline {
     position: absolute;
     inset: 0;
