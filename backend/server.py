@@ -199,26 +199,24 @@ IMPORTANT:
                 # Open image with PIL to ensure correct format
                 img = Image.open(BytesIO(image_data))
                 
-                # Convert to RGB if necessary (remove alpha channel)
-                if img.mode in ('RGBA', 'LA', 'P'):
-                    # Create white background
-                    background = Image.new('RGB', img.size, (255, 255, 255))
-                    if img.mode == 'P':
-                        img = img.convert('RGBA')
-                    background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
-                    img = background
-                elif img.mode != 'RGB':
+                # Convert to RGB/RGBA as needed for PNG format
+                if img.mode in ('RGBA', 'LA'):
+                    # Keep transparency for PNG
+                    pass
+                elif img.mode == 'P':
+                    img = img.convert('RGBA')
+                elif img.mode not in ('RGB', 'RGBA'):
                     img = img.convert('RGB')
                 
-                # Save as JPEG to ensure compatibility
+                # Save as PNG to maintain compatibility and quality
                 img_byte_arr = BytesIO()
-                img.save(img_byte_arr, format='JPEG', quality=95)
+                img.save(img_byte_arr, format='PNG')
                 img_byte_arr = img_byte_arr.getvalue()
                 
                 # Convert to base64
                 base64_image = base64.b64encode(img_byte_arr).decode('utf-8')
                 
-                # Create image content with correct MIME type
+                # Create image content
                 image_content = ImageContent(image_base64=base64_image)
                 
                 user_message = UserMessage(
