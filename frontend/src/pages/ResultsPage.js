@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Shield, AlertTriangle, CheckCircle, Info, Hash, Clock, FileText, ChevronRight } from "lucide-react";
+import { Shield, AlertTriangle, CheckCircle, Info, Hash, Clock, FileText, ChevronRight, Volume2 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { useAccessibility } from "@/context/AccessibilityContext";
+import { useLanguage } from "@/context/LanguageContext";
+import FontSizeControl from "@/components/FontSizeControl";
+import LanguageSelector from "@/components/LanguageSelector";
+import VoiceOutput from "@/components/VoiceOutput";
+import WhatsAppShare from "@/components/WhatsAppShare";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -13,6 +19,8 @@ const ResultsPage = () => {
   const navigate = useNavigate();
   const [report, setReport] = useState(location.state?.report || null);
   const [loading, setLoading] = useState(!location.state?.report);
+  const { playAlert } = useAccessibility();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!location.state?.report) {
@@ -31,6 +39,13 @@ const ResultsPage = () => {
       fetchReport();
     }
   }, [reportId, location.state, navigate]);
+
+  // Play alert sound when report is loaded
+  useEffect(() => {
+    if (report && report.scam_assessment) {
+      playAlert(report.scam_assessment.risk_level);
+    }
+  }, [report, playAlert]);
 
   if (loading) {
     return (
@@ -86,29 +101,85 @@ const ResultsPage = () => {
               data-testid="home-link"
             >
               <Shield className="w-8 h-8 text-slate-900" />
-              <h1 className="font-mono font-bold text-2xl text-slate-900">VeriSure</h1>
+              <h1 className="font-mono font-bold text-2xl text-slate-900">{t('appTitle')}</h1>
             </div>
-            <button
-              onClick={() => navigate('/analyze')}
-              className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-2 font-mono text-sm uppercase tracking-wider transition-all"
-              data-testid="new-analysis-btn"
-            >
-              New Analysis
-            </button>
+            <div className="flex items-center gap-3">
+              <WhatsAppShare report={report} />
+              <LanguageSelector />
+              <FontSizeControl />
+              <button
+                onClick={() => navigate('/analyze')}
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                data-testid="new-analysis-btn"
+              >
+                {t('newAnalysis')}
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
+      {/* Risk Alert Banner */}
+      {report && report.scam_assessment.risk_level === 'high' && (
+        <div className="bg-rose-600 border-b-4 border-rose-700" data-testid="high-risk-banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-center gap-4">
+              <AlertTriangle className="w-12 h-12 text-white animate-pulse" />
+              <div className="text-center">
+                <div className="font-mono font-bold text-2xl text-white mb-1">
+                  ⚠️ {t('highRisk')} ⚠️
+                </div>
+                <div className="font-sans text-lg text-white">
+                  {t('highRiskWarning')}
+                </div>
+              </div>
+              <Volume2 className="w-8 h-8 text-white" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {report && report.scam_assessment.risk_level === 'medium' && (
+        <div className="bg-amber-500 border-b-4 border-amber-600" data-testid="medium-risk-banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-center gap-3">
+              <Info className="w-8 h-8 text-white" />
+              <div className="font-mono font-bold text-xl text-white">
+                ⚠️ {t('mediumRisk')}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {report && report.scam_assessment.risk_level === 'low' && (
+        <div className="bg-emerald-500 border-b-4 border-emerald-600" data-testid="low-risk-banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-center gap-3">
+              <CheckCircle className="w-8 h-8 text-white" />
+              <div className="font-mono font-bold text-xl text-white">
+                ✓ {t('lowRisk')}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Results Content */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-12">
-            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4" data-testid="results-label">
-              Analysis Report
+          <div className="mb-12 flex items-center justify-between">
+            <div>
+              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4" data-testid="results-label">
+                {t('analysisReport')}
+              </div>
+              <h2 className="font-mono font-bold text-4xl tracking-tight text-slate-900" data-testid="results-title">
+                {t('forensicComplete')}
+              </h2>
             </div>
-            <h2 className="font-mono font-bold text-4xl tracking-tight text-slate-900" data-testid="results-title">
-              Forensic Analysis Complete
-            </h2>
+            <VoiceOutput 
+              text={`${t('scamRisk')}: ${t(report?.scam_assessment.risk_level === 'high' ? 'highRiskLabel' : report?.scam_assessment.risk_level === 'medium' ? 'mediumRiskLabel' : 'lowRiskLabel')}. ${report?.analysis_summary}`} 
+            />
           </div>
 
           {/* Bento Grid Layout */}
@@ -139,23 +210,45 @@ const ResultsPage = () => {
               </div>
             </div>
 
-            {/* Scam Risk Assessment */}
-            <div className="bg-white border border-slate-200 p-6 relative overflow-hidden" data-testid="scam-risk-card">
+            {/* Scam Risk Assessment - Enhanced with larger visuals */}
+            <div className={`border-4 p-8 relative overflow-hidden ${
+              report.scam_assessment.risk_level === 'high' ? 'bg-rose-50 border-rose-500' :
+              report.scam_assessment.risk_level === 'medium' ? 'bg-amber-50 border-amber-400' :
+              'bg-emerald-50 border-emerald-400'
+            }`} data-testid="scam-risk-card">
               <div className="scanline"></div>
-              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">Scam Risk</div>
-              <div className="flex items-center gap-3 mb-4">
-                {report.scam_assessment.risk_level === 'high' && <AlertTriangle className="w-8 h-8 text-rose-600" />}
-                {report.scam_assessment.risk_level === 'medium' && <Info className="w-8 h-8 text-amber-600" />}
-                {report.scam_assessment.risk_level === 'low' && <CheckCircle className="w-8 h-8 text-emerald-600" />}
-                <span className={`px-3 py-1 rounded-full text-xs font-mono uppercase border ${getRiskColor(report.scam_assessment.risk_level)}`}>
-                  {report.scam_assessment.risk_level} risk
-                </span>
+              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">Scam Risk Level</div>
+              <div className="flex flex-col items-center gap-4 mb-6">
+                {report.scam_assessment.risk_level === 'high' && (
+                  <>
+                    <AlertTriangle className="w-20 h-20 text-rose-600" />
+                    <span className="px-6 py-3 rounded-full text-lg font-mono font-bold uppercase border-2 bg-rose-100 text-rose-800 border-rose-600">
+                      HIGH RISK
+                    </span>
+                  </>
+                )}
+                {report.scam_assessment.risk_level === 'medium' && (
+                  <>
+                    <Info className="w-20 h-20 text-amber-600" />
+                    <span className="px-6 py-3 rounded-full text-lg font-mono font-bold uppercase border-2 bg-amber-100 text-amber-800 border-amber-600">
+                      MEDIUM RISK
+                    </span>
+                  </>
+                )}
+                {report.scam_assessment.risk_level === 'low' && (
+                  <>
+                    <CheckCircle className="w-20 h-20 text-emerald-600" />
+                    <span className="px-6 py-3 rounded-full text-lg font-mono font-bold uppercase border-2 bg-emerald-100 text-emerald-800 border-emerald-600">
+                      LOW RISK
+                    </span>
+                  </>
+                )}
               </div>
               
               <div className="space-y-2 mt-4">
                 <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">Patterns Detected</div>
                 {report.scam_assessment.scam_patterns.slice(0, 3).map((pattern, idx) => (
-                  <p key={idx} className="font-sans text-xs text-slate-600">• {pattern}</p>
+                  <p key={idx} className="font-sans text-sm text-slate-700 leading-relaxed">• {pattern}</p>
                 ))}
               </div>
             </div>
