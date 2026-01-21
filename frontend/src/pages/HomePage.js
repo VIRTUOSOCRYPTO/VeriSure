@@ -1,8 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { Shield, Zap, Eye, Lock } from "lucide-react";
+import { Shield, Zap, Eye, Lock, AlertTriangle, CheckCircle, Upload } from "lucide-react";
+import FontSizeControl from "@/components/FontSizeControl";
+import LanguageSelector from "@/components/LanguageSelector";
+import { useLanguage } from "@/context/LanguageContext";
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -12,15 +16,19 @@ const HomePage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Shield className="w-8 h-8 text-slate-900" />
-              <h1 className="font-mono font-bold text-2xl text-slate-900" data-testid="app-title">VeriSure</h1>
+              <h1 className="font-mono font-bold text-2xl text-slate-900" data-testid="app-title">{t('appTitle')}</h1>
             </div>
-            <button
-              onClick={() => navigate('/analyze')}
-              className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-2 font-mono text-sm uppercase tracking-wider transition-all active:scale-95"
-              data-testid="analyze-now-btn"
-            >
-              Analyze Now
-            </button>
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
+              <FontSizeControl />
+              <button
+                onClick={() => navigate('/analyze')}
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[44px]"
+                data-testid="analyze-now-btn"
+              >
+                {t('analyzeNow')}
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -35,30 +43,46 @@ const HomePage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-7">
               <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4" data-testid="hero-label">
-                Advanced AI Forensics
+                {t('heroLabel')}
               </div>
               <h2 className="font-mono font-bold text-4xl sm:text-5xl lg:text-6xl tracking-tight text-slate-900 mb-6" data-testid="hero-title">
-                Detect AI Content<br />& Scam Threats
+                {t('heroTitle')}
               </h2>
-              <p className="font-sans text-base text-slate-600 leading-relaxed mb-8 max-w-2xl" data-testid="hero-description">
-                VeriSure provides forensic-grade analysis to identify AI-generated content and assess scam risk. 
-                Protect yourself from deepfakes, manipulated media, and social engineering attacks targeting Indians.
+              <p className="font-sans text-lg text-slate-600 leading-relaxed mb-8 max-w-2xl" data-testid="hero-description">
+                {t('heroDescription')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => navigate('/analyze')}
-                  className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-3 font-mono text-sm uppercase tracking-wider transition-all active:scale-95"
+                  className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-4 font-mono text-base uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[56px]"
                   data-testid="get-started-btn"
                 >
-                  Get Started
+                  <Upload className="w-5 h-5" />
+                  {t('getStarted')}
                 </button>
                 <button
                   onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-8 py-3 font-mono text-sm uppercase tracking-wider transition-all"
+                  className="bg-white border-2 border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-8 py-4 font-mono text-base uppercase tracking-wider transition-all min-h-[56px]"
                   data-testid="how-it-works-btn"
                 >
-                  How It Works
+                  {t('howItWorks')}
                 </button>
+              </div>
+
+              {/* Quick Info Cards */}
+              <div className="mt-8 grid grid-cols-3 gap-3">
+                <div className="bg-emerald-50 border-2 border-emerald-200 rounded-sm p-3 text-center">
+                  <CheckCircle className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                  <div className="font-mono text-xs text-emerald-700">{t('safe')}</div>
+                </div>
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-sm p-3 text-center">
+                  <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-1" />
+                  <div className="font-mono text-xs text-amber-700">{t('warning')}</div>
+                </div>
+                <div className="bg-rose-50 border-2 border-rose-200 rounded-sm p-3 text-center">
+                  <AlertTriangle className="w-6 h-6 text-rose-600 mx-auto mb-1" />
+                  <div className="font-mono text-xs text-rose-700">{t('danger')}</div>
+                </div>
               </div>
             </div>
             <div className="lg:col-span-5">
@@ -84,29 +108,29 @@ const HomePage = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white border border-slate-200 p-6 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-origin">
+            <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-origin">
               <div className="scanline"></div>
-              <Eye className="w-8 h-8 text-slate-900 mb-4" />
+              <Eye className="w-12 h-12 text-slate-900 mb-4" />
               <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">Origin Detection</h4>
-              <p className="font-sans text-sm text-slate-600 leading-relaxed">
+              <p className="font-sans text-base text-slate-600 leading-relaxed">
                 Identify AI-generated vs human-created content using advanced pattern recognition and artifact detection.
               </p>
             </div>
             
-            <div className="bg-white border border-slate-200 p-6 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-scam">
+            <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-scam">
               <div className="scanline"></div>
-              <Shield className="w-8 h-8 text-slate-900 mb-4" />
+              <Shield className="w-12 h-12 text-slate-900 mb-4" />
               <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">Scam Assessment</h4>
-              <p className="font-sans text-sm text-slate-600 leading-relaxed">
+              <p className="font-sans text-base text-slate-600 leading-relaxed">
                 Detect India-specific scam patterns including fake police threats, banking fraud, and emotional manipulation.
               </p>
             </div>
             
-            <div className="bg-white border border-slate-200 p-6 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-evidence">
+            <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-evidence">
               <div className="scanline"></div>
-              <Lock className="w-8 h-8 text-slate-900 mb-4" />
+              <Lock className="w-12 h-12 text-slate-900 mb-4" />
               <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">Evidence Integrity</h4>
-              <p className="font-sans text-sm text-slate-600 leading-relaxed">
+              <p className="font-sans text-base text-slate-600 leading-relaxed">
                 Generate cryptographic hashes and timestamped reports for potential legal or documentation needs.
               </p>
             </div>
