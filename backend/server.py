@@ -1108,6 +1108,282 @@ async def get_job_status(request: Request, job_id: str):
         logger.error(f"Job status error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get job status: {str(e)}")
 
+@api_router.post("/compare")
+@limiter.limit("30/minute")
+async def compare_reports(
+    request: Request,
+    report_ids: List[str]
+):
+    """
+    Compare multiple analysis reports
+    Returns detailed comparison with common patterns, unique patterns, risk trends, and insights
+    Min 2 reports, Max 10 reports
+    """
+    try:
+        # Validate input
+        if len(report_ids) < 2:
+            raise HTTPException(status_code=400, detail="At least 2 report IDs required for comparison")
+        
+        if len(report_ids) > 10:
+            raise HTTPException(status_code=400, detail="Maximum 10 reports can be compared at once")
+        
+        logger.info(f"📊 Comparing {len(report_ids)} reports")
+        
+        # Fetch all reports from database
+        reports = []
+        not_found = []
+        
+        for report_id in report_ids:
+            report = await db.analysis_reports.find_one({"report_id": report_id}, {"_id": 0})
+            if report:
+                reports.append(report)
+            else:
+                not_found.append(report_id)
+        
+        if not_found:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Reports not found: {', '.join(not_found)}"
+            )
+        
+        if len(reports) < 2:
+            raise HTTPException(status_code=400, detail="At least 2 valid reports required")
+        
+        # Perform comparison analysis
+        comparison_result = _perform_comparison_analysis(reports)
+        
+        # Track comparison in analytics (optional - could add to separate collection)
+        comparison_record = {
+            "comparison_id": str(uuid.uuid4()),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "report_ids": report_ids,
+            "num_reports": len(reports),
+            "comparison_type": "multi_report"
+        }
+        # Store comparison analytics (fire and forget)
+        try:
+            await db.comparison_analytics.insert_one(comparison_record)
+        except Exception:
+            pass  # Don't fail comparison if analytics fails
+        
+        logger.info(f"✅ Comparison complete: {len(reports)} reports analyzed")
+        
+        return {
+            "comparison_id": comparison_record["comparison_id"],
+            "timestamp": comparison_record["timestamp"],
+            "num_reports": len(reports),
+            "reports": reports,
+            "analysis": comparison_result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Comparison error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Comparison failed: {str(e)}")
+
+def _perform_comparison_analysis(reports: List[Dict]) -> Dict:
+    """
+    Perform detailed comparison analysis on multiple reports
+    Returns structured comparison data with insights
+    """
+    analysis = {
+        "risk_analysis": {},
+        "pattern_analysis": {},
+        "origin_analysis": {},
+        "temporal_analysis": {},
+        "insights": []
+    }
+    
+    # 1. RISK ANALYSIS
+    risk_levels = [r["scam_assessment"]["risk_level"] for r in reports]
+    risk_counts = {"high": 0, "medium": 0, "low": 0}
+    for level in risk_levels:
+        risk_counts[level] = risk_counts.get(level, 0) + 1
+    
+    # Calculate risk trend (if reports are sequential)
+    risk_scores = {"high": 3, "medium": 2, "low": 1}
+    risk_progression = [risk_scores[level] for level in risk_levels]
+    
+    trend = "stable"
+    if len(risk_progression) >= 2:
+        if risk_progression[-1] > risk_progression[0]:
+            trend = "increasing"
+        elif risk_progression[-1] < risk_progression[0]:
+            trend = "decreasing"
+    
+    analysis["risk_analysis"] = {
+        "distribution": risk_counts,
+        "dominant_risk": max(risk_counts, key=risk_counts.get),
+        "risk_trend": trend,
+        "risk_progression": risk_levels
+    }
+    
+    # Add insight for risk trend
+    if trend == "increasing":
+        analysis["insights"].append({
+            "type": "warning",
+            "message": f"Risk level is increasing across reports ({risk_levels[0]} → {risk_levels[-1]})",
+            "severity": "high"
+        })
+    elif risk_counts["high"] >= len(reports) * 0.5:
+        analysis["insights"].append({
+            "type": "critical",
+            "message": f"{risk_counts['high']}/{len(reports)} reports show HIGH risk - immediate action recommended",
+            "severity": "critical"
+        })
+    
+    # 2. PATTERN ANALYSIS
+    all_scam_patterns = set()
+    all_behavioral_flags = set()
+    pattern_frequency = {}
+    flag_frequency = {}
+    
+    for report in reports:
+        patterns = report["scam_assessment"]["scam_patterns"]
+        flags = report["scam_assessment"]["behavioral_flags"]
+        
+        for pattern in patterns:
+            all_scam_patterns.add(pattern)
+            pattern_frequency[pattern] = pattern_frequency.get(pattern, 0) + 1
+        
+        for flag in flags:
+            all_behavioral_flags.add(flag)
+            flag_frequency[flag] = flag_frequency.get(flag, 0) + 1
+    
+    # Find common patterns (appear in all reports)
+    common_patterns = [
+        pattern for pattern, count in pattern_frequency.items() 
+        if count == len(reports)
+    ]
+    
+    # Find frequent patterns (appear in >50% of reports)
+    frequent_patterns = [
+        pattern for pattern, count in pattern_frequency.items()
+        if count >= len(reports) * 0.5 and pattern not in common_patterns
+    ]
+    
+    # Most common pattern across all reports
+    most_common_pattern = max(pattern_frequency, key=pattern_frequency.get) if pattern_frequency else None
+    
+    analysis["pattern_analysis"] = {
+        "total_unique_patterns": len(all_scam_patterns),
+        "total_unique_flags": len(all_behavioral_flags),
+        "common_patterns": common_patterns,  # In ALL reports
+        "frequent_patterns": frequent_patterns,  # In ≥50% reports
+        "most_common_pattern": most_common_pattern,
+        "pattern_frequency": pattern_frequency,
+        "flag_frequency": flag_frequency
+    }
+    
+    # Add insights for patterns
+    if len(common_patterns) > 0:
+        analysis["insights"].append({
+            "type": "info",
+            "message": f"Found {len(common_patterns)} scam pattern(s) common across ALL reports - likely same attack vector",
+            "severity": "medium"
+        })
+    
+    if len(all_scam_patterns) > 5 and len(common_patterns) == 0:
+        analysis["insights"].append({
+            "type": "info", 
+            "message": f"High pattern diversity ({len(all_scam_patterns)} unique patterns) with no common patterns - multiple attack types",
+            "severity": "low"
+        })
+    
+    # 3. ORIGIN ANALYSIS
+    origin_classifications = [r["origin_verdict"]["classification"] for r in reports]
+    origin_counts = {}
+    for classification in origin_classifications:
+        origin_counts[classification] = origin_counts.get(classification, 0) + 1
+    
+    # Calculate confidence distribution
+    confidence_levels = [r["origin_verdict"]["confidence"] for r in reports]
+    confidence_counts = {"high": 0, "medium": 0, "low": 0}
+    for conf in confidence_levels:
+        confidence_counts[conf] = confidence_counts.get(conf, 0) + 1
+    
+    analysis["origin_analysis"] = {
+        "classification_distribution": origin_counts,
+        "dominant_classification": max(origin_counts, key=origin_counts.get),
+        "confidence_distribution": confidence_counts,
+        "all_classifications": origin_classifications
+    }
+    
+    # Add insights for AI-generated content
+    if origin_counts.get("Likely AI-Generated", 0) >= len(reports) * 0.5:
+        analysis["insights"].append({
+            "type": "warning",
+            "message": f"{origin_counts.get('Likely AI-Generated', 0)}/{len(reports)} reports show AI-generated content",
+            "severity": "medium"
+        })
+    
+    # 4. TEMPORAL ANALYSIS (if timestamps are meaningful)
+    timestamps = [datetime.fromisoformat(r["timestamp"].replace('Z', '+00:00')) for r in reports]
+    timestamps_sorted = sorted(timestamps)
+    
+    time_span = (timestamps_sorted[-1] - timestamps_sorted[0]).total_seconds()
+    
+    analysis["temporal_analysis"] = {
+        "first_analysis": timestamps_sorted[0].isoformat(),
+        "last_analysis": timestamps_sorted[-1].isoformat(),
+        "time_span_seconds": time_span,
+        "time_span_hours": round(time_span / 3600, 2),
+        "analysis_frequency": "sequential" if time_span < 3600 else ("same_day" if time_span < 86400 else "multi_day")
+    }
+    
+    # Add temporal insights
+    if time_span < 300:  # Less than 5 minutes
+        analysis["insights"].append({
+            "type": "info",
+            "message": "All analyses performed within 5 minutes - likely testing same content variations",
+            "severity": "low"
+        })
+    
+    # 5. SIMILARITY ANALYSIS
+    # Calculate Jaccard similarity for scam patterns
+    if len(reports) == 2:
+        patterns_1 = set(reports[0]["scam_assessment"]["scam_patterns"])
+        patterns_2 = set(reports[1]["scam_assessment"]["scam_patterns"])
+        
+        if len(patterns_1) > 0 or len(patterns_2) > 0:
+            intersection = len(patterns_1.intersection(patterns_2))
+            union = len(patterns_1.union(patterns_2))
+            similarity = round(intersection / union * 100, 1) if union > 0 else 0
+            
+            analysis["similarity_score"] = similarity
+            
+            if similarity >= 70:
+                analysis["insights"].append({
+                    "type": "info",
+                    "message": f"Reports are {similarity}% similar - likely same or related scam content",
+                    "severity": "medium"
+                })
+            elif similarity < 30:
+                analysis["insights"].append({
+                    "type": "info",
+                    "message": f"Reports are only {similarity}% similar - likely different scam types",
+                    "severity": "low"
+                })
+    
+    # 6. ACTIONABLE RECOMMENDATIONS
+    recommendations = []
+    
+    if risk_counts.get("high", 0) > 0:
+        recommendations.append("Immediate action required for high-risk content")
+        recommendations.append("Report to cybercrime.gov.in if financial loss occurred")
+    
+    if len(common_patterns) > 0:
+        recommendations.append(f"Common attack vector detected: {common_patterns[0]}")
+        recommendations.append("Implement specific defenses against this pattern")
+    
+    if trend == "increasing":
+        recommendations.append("Risk is escalating - monitor closely and take preventive measures")
+    
+    analysis["recommendations"] = recommendations
+    
+    return analysis
+
 @api_router.post("/analyze/batch")
 @limiter.limit("10/minute")
 async def analyze_batch(
