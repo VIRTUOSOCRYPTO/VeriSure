@@ -1319,8 +1319,12 @@ async def analyze_batch(
         logger.error(f"Batch analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Batch analysis failed: {str(e)}")
 
-# Include the router in the main app
+# Include routers in the main app
 app.include_router(api_router)
+
+# Import and include WhatsApp router
+from whatsapp_routes import whatsapp_router
+app.include_router(whatsapp_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
