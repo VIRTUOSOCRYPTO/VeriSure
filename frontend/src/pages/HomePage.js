@@ -19,6 +19,13 @@ const HomePage = () => {
               <h1 className="font-mono font-bold text-2xl text-slate-900" data-testid="app-title">{t('appTitle')}</h1>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/history')}
+                className="bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                data-testid="history-btn"
+              >
+                History
+              </button>
               <LanguageSelector />
               <FontSizeControl />
               <button
