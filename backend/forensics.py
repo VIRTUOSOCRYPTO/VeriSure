@@ -360,6 +360,7 @@ class ForensicAnalyzer:
         try:
             # Save temporarily for analysis
             import tempfile
+            import os
             with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp:
                 tmp.write(video_bytes)
                 tmp_path = tmp.name
@@ -387,6 +388,15 @@ class ForensicAnalyzer:
                     'metadata': probe['format'].get('tags', {})
                 }
                 
+                # Extract key frames for visual analysis
+                try:
+                    key_frames = self._extract_key_frames(tmp_path, signals.get('duration', 0))
+                    signals['key_frames'] = key_frames
+                    logger.info(f"Extracted {len(key_frames)} key frames for analysis")
+                except Exception as frame_error:
+                    logger.warning(f"Frame extraction failed: {str(frame_error)}")
+                    signals['key_frames'] = []
+                
                 # Extract forensic indicators
                 indicators = self._extract_video_forensic_indicators(signals)
                 signals['forensic_indicators'] = indicators
@@ -394,8 +404,8 @@ class ForensicAnalyzer:
                 return signals
                 
             finally:
-                import os
-                os.unlink(tmp_path)
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
                 
         except Exception as e:
             logger.error(f"Video analysis error: {str(e)}")
@@ -412,6 +422,55 @@ class ForensicAnalyzer:
     
     def _extract_video_forensic_indicators(self, signals: Dict) -> Dict:
         """Extract forensic indicators from video signals"""
+
+    def _extract_key_frames(self, video_path: str, duration: float, max_frames: int = 3) -> List[bytes]:
+        """Extract key frames from video for visual analysis"""
+        frames = []
+        
+        try:
+            # Extract frames at specific timestamps
+            timestamps = []
+            if duration > 0:
+                # Extract frames from beginning, middle, and end
+                timestamps = [
+                    duration * 0.1,   # 10% into video
+                    duration * 0.5,   # Middle
+                    duration * 0.9    # 90% into video
+                ]
+            else:
+                timestamps = [0, 1, 2]  # First 3 seconds
+            
+            import subprocess
+            import tempfile
+            import os
+            
+            for i, timestamp in enumerate(timestamps[:max_frames]):
+                with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_frame:
+                    frame_path = tmp_frame.name
+                
+                try:
+                    # Extract frame at timestamp
+                    subprocess.run([
+                        'ffmpeg', '-y', '-ss', str(timestamp), '-i', video_path,
+                        '-frames:v', '1', '-q:v', '2', frame_path
+                    ], capture_output=True, check=True, timeout=10)
+                    
+                    # Read frame data
+                    with open(frame_path, 'rb') as f:
+                        frame_data = f.read()
+                        frames.append(frame_data)
+                    
+                except Exception as frame_err:
+                    logger.warning(f"Failed to extract frame at {timestamp}s: {str(frame_err)}")
+                finally:
+                    if os.path.exists(frame_path):
+                        os.unlink(frame_path)
+            
+        except Exception as e:
+            logger.error(f"Frame extraction error: {str(e)}")
+        
+        return frames
+
         indicators = {
             'human_signals': [],
             'ai_signals': [],
