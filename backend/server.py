@@ -83,64 +83,173 @@ class AnalysisReport(BaseModel):
     analysis_summary: str
 
 
-# India-specific scam patterns
+# India-specific scam patterns - ENHANCED with more patterns
 INDIA_SCAM_PATTERNS = [
-    (r"\b(arrest|police|cyber crime|CBI|FIR|legal action|court notice|warrant)\b", "Fake police/law enforcement threat"),
-    (r"\b(your son|your daughter|your child).*(arrest|accident|hospital|trouble)\b", "Family emergency scam"),
-    (r"\b(RBI|Reserve Bank|bank account|frozen|suspend|block|KYC|inactive)\b", "Banking/RBI fraud"),
-    (r"\b(urgent|immediate|last chance|within \d+ hours?|final notice|act now)\b", "Urgency manipulation"),
-    (r"\b(don't tell|keep secret|confidential|don't share)\b", "Secrecy demand"),
-    (r"\b(verify|update|confirm|validate).*(OTP|password|PIN|CVV|card|account)\b", "Credential harvesting"),
-    (r"\b(lottery|prize|won|winner|claim|reward|congratulations)\b", "Fake prize scam"),
-    (r"\b(customs|parcel|delivery|courier|package|shipment)\b", "Fake delivery scam"),
-    (r"\b(tax|refund|GST|income tax|return)\b", "Tax refund scam"),
-    (r"\b(click here|link|download|install|update now|click below)\b", "Phishing link"),
-    (r"\b(fine|fined|penalty|charge).*(pay|payment|amount|\$|₹)\b", "Fake fine/penalty scam"),
-    (r"\b(amazon|flipkart|myntra|paytm|swiggy|zomato).*(order|delivery|account|suspend|block|fine|return)\b", "Fake e-commerce impersonation"),
+    # Law enforcement threats
+    (r"\b(arrest|police|cyber crime|CBI|FIR|legal action|court notice|warrant|jail|custody)\b", "Fake police/law enforcement threat"),
+    (r"\b(ED|enforcement directorate|money laundering|PMLA|investigation)\b", "Fake ED/investigation threat"),
+    
+    # Family emergency scams
+    (r"\b(your son|your daughter|your child|your family member).*(arrest|accident|hospital|trouble|injured|emergency)\b", "Family emergency scam"),
+    (r"\b(son|daughter|husband|wife|relative).*(hospital|accident|urgent|emergency|critical)\b", "Family in danger scam"),
+    
+    # Banking & financial threats
+    (r"\b(RBI|Reserve Bank|SEBI|bank account|frozen|suspend|block|KYC|inactive|dormant)\b", "Banking/RBI fraud"),
+    (r"\b(Aadhaar|PAN|UPI|NEFT|RTGS|IMPS).*(update|link|verify|suspend|expire)\b", "Financial document/payment fraud"),
+    (r"\b(credit card|debit card|ATM).*(block|expire|suspend|upgrade|reward)\b", "Card fraud"),
+    (r"\b(insurance|policy|maturity|claim).*(expire|lapse|urgent|final)\b", "Fake insurance scam"),
+    
+    # Urgency & pressure tactics
+    (r"\b(urgent|immediate|last chance|within \d+ (hours?|days?)|final notice|act now|today only|expires today)\b", "Urgency manipulation"),
+    (r"\b(now or never|limited time|hurry|quick|fast|immediately)\b", "High-pressure urgency"),
+    
+    # Secrecy demands
+    (r"\b(don't tell|keep secret|confidential|don't share|don't inform|between us)\b", "Secrecy demand"),
+    (r"\b(private matter|personal|discreet|quiet|silent)\b", "Privacy manipulation"),
+    
+    # Credential harvesting
+    (r"\b(verify|update|confirm|validate|enter|provide|submit|share).*(OTP|password|PIN|CVV|card|account|credentials|passcode)\b", "Credential harvesting"),
+    (r"\b(OTP|one time password|verification code|security code).*(share|send|tell|provide|give)\b", "OTP phishing"),
+    
+    # Prize & lottery scams
+    (r"\b(lottery|prize|won|winner|claim|reward|congratulations|lucky draw|cashback)\b", "Fake prize scam"),
+    (r"\b(jackpot|bumper|crore|lakh|\d+ thousand).*(won|win|prize|reward)\b", "Lottery fraud"),
+    
+    # Delivery & customs scams
+    (r"\b(customs|parcel|delivery|courier|package|shipment|cargo|consignment).*(duty|tax|fee|charge|pending|held|seized)\b", "Fake delivery/customs scam"),
+    (r"\b(FedEx|DHL|Blue Dart|India Post|DTDC).*(package|parcel|delivery|shipment)\b", "Courier impersonation"),
+    
+    # Tax & government scams
+    (r"\b(tax|refund|GST|income tax|TDS|return|ITR).*(claim|pending|due|refund|process)\b", "Tax refund scam"),
+    (r"\b(government|ministry|department|PM|CM).*(scheme|benefit|subsidy|grant)\b", "Fake government scheme"),
+    
+    # Phishing links - ENHANCED
+    (r"\b(click here|link|download|install|update now|click below|tap here|visit|go to|check link)\b", "Phishing link"),
+    (r"(http|https|www\.|bit\.ly|tinyurl).*(verify|login|update|confirm|claim)\b", "Suspicious URL phishing"),
+    (r"(tinyurl\.com|bit\.ly|goo\.gl|shorturl|t\.co)/\w+", "Shortened URL (commonly used in scams)"),
+    
+    # Fines & penalties
+    (r"\b(fine|fined|penalty|charge|violation|offense).*(pay|payment|amount|\$|₹|rupees)\b", "Fake fine/penalty scam"),
+    (r"\b(traffic|challan|e-challan|violation).*(pay|fine|penalty)\b", "Fake traffic fine"),
+    
+    # E-commerce impersonation
+    (r"\b(amazon|flipkart|myntra|paytm|swiggy|zomato|meesho|snapdeal).*(order|delivery|account|suspend|block|fine|return|refund|verify)\b", "Fake e-commerce impersonation"),
+    
+    # Job & investment scams
+    (r"\b(job|work from home|part time|earn|income).*(guaranteed|assured|easy|simple|\d+ per day)\b", "Fake job/work from home scam"),
+    (r"\b(investment|trading|stock|forex|crypto|bitcoin).*(guaranteed|assured|returns|profit|double)\b", "Investment fraud"),
+    (r"\b(profit|returns|gains|earnings).*(guaranteed|assured|maximize|double|high|members|weekly|daily|monthly)\b", "Financial profit scam"),
+    (r"\b(tools|system|method|strategy).*(profit|returns|money|income|gains)\b", "Get-rich-quick scheme"),
+    (r"(Rs\.?|₹)\s*\d+.*(profit|earned|made|gain|returns).*(week|month|day|members)\b", "Fabricated profit claims"),
+    
+    # Romance & social scams
+    (r"\b(loan|credit|finance).*(instant|easy|no documents|approved|pre-approved)\b", "Fake loan scam"),
+    (r"\b(gift|voucher|coupon|discount).*(claim|redeem|exclusive|free)\b", "Fake voucher scam"),
 ]
 
-# Analysis helper functions
+# Analysis helper functions - IMPROVED
 def detect_scam_patterns(text: str) -> tuple[List[str], List[str]]:
-    """Detect India-specific scam patterns in text"""
+    """Detect India-specific scam patterns in text with ENHANCED accuracy"""
     patterns_found = []
     behavioral_flags = []
+    scam_score = 0  # Track overall scam likelihood
     
     text_lower = text.lower()
     
+    # Detect all matching patterns
     for pattern_regex, description in INDIA_SCAM_PATTERNS:
         if re.search(pattern_regex, text_lower):
-            patterns_found.append(description)
+            # Avoid duplicate pattern descriptions
+            if description not in patterns_found:
+                patterns_found.append(description)
             
-            # Add behavioral flags based on pattern type
-            if "police" in description.lower() or "law enforcement" in description.lower():
+            # Increase scam score based on pattern severity
+            if "police" in description.lower() or "law enforcement" in description.lower() or "ED" in description.lower():
                 behavioral_flags.append("Impersonates law enforcement authority")
-            elif "family emergency" in description.lower():
+                scam_score += 3  # High severity
+            elif "family emergency" in description.lower() or "family in danger" in description.lower():
                 behavioral_flags.append("Exploits family emotional bonds")
-            elif "banking" in description.lower() or "rbi" in description.lower():
+                scam_score += 3  # High severity
+            elif "banking" in description.lower() or "rbi" in description.lower() or "financial" in description.lower():
                 behavioral_flags.append("Threatens financial account security")
-            elif "urgency" in description.lower():
-                behavioral_flags.append("Creates artificial time pressure")
-            elif "secrecy" in description.lower():
-                behavioral_flags.append("Discourages verification with others")
-            elif "credential" in description.lower():
+                scam_score += 3  # High severity
+            elif "OTP" in description.lower() or "credential" in description.lower():
                 behavioral_flags.append("Requests sensitive authentication data")
-            elif "phishing" in description.lower():
+                scam_score += 4  # Critical severity
+            elif "urgency" in description.lower() or "pressure" in description.lower():
+                behavioral_flags.append("Creates artificial time pressure")
+                scam_score += 2  # Medium severity
+            elif "secrecy" in description.lower() or "privacy" in description.lower():
+                behavioral_flags.append("Discourages verification with others")
+                scam_score += 2  # Medium severity
+            elif "phishing" in description.lower() or "suspicious url" in description.lower():
                 behavioral_flags.append("Attempts to redirect to malicious links")
+                scam_score += 3  # High severity
+            elif "fine" in description.lower() or "penalty" in description.lower():
+                behavioral_flags.append("Threatens with fake fines/penalties")
+                scam_score += 2  # Medium severity
+            elif "prize" in description.lower() or "lottery" in description.lower():
+                behavioral_flags.append("Uses fake rewards to lure victims")
+                scam_score += 2  # Medium severity
+            elif "investment" in description.lower() or "job" in description.lower():
+                behavioral_flags.append("Promises unrealistic financial gains")
+                scam_score += 2  # Medium severity
     
     # Remove duplicate behavioral flags
     behavioral_flags = list(dict.fromkeys(behavioral_flags))
     
-    # Check for authority abuse
-    authority_keywords = ["police", "court", "rbi", "government", "officer", "cbi"]
-    if any(keyword in text_lower for keyword in authority_keywords):
-        if "Impersonates law enforcement authority" not in behavioral_flags:
-            behavioral_flags.append("Uses authority figure impersonation")
+    # ENHANCED: Check for dangerous keyword combinations
+    # Authority + Money
+    authority_keywords = ["police", "court", "rbi", "government", "officer", "cbi", "ed", "enforcement"]
+    money_keywords = ["pay", "fine", "penalty", "amount", "rupees", "₹", "transfer", "deposit"]
+    if any(auth in text_lower for auth in authority_keywords) and any(money in text_lower for money in money_keywords):
+        if "Combines authority threat with payment demand" not in behavioral_flags:
+            behavioral_flags.append("Combines authority threat with payment demand")
+        scam_score += 3
     
-    # Check for emotional manipulation
-    emotion_keywords = ["urgent", "immediate", "danger", "risk", "threat", "last chance"]
-    if sum(1 for keyword in emotion_keywords if keyword in text_lower) >= 2:
-        if not any("pressure" in flag.lower() for flag in behavioral_flags):
-            behavioral_flags.append("Uses emotional coercion tactics")
+    # Urgency + Credential Request
+    urgency_keywords = ["urgent", "immediate", "now", "today", "quickly", "fast", "expires"]
+    credential_keywords = ["otp", "password", "pin", "cvv", "card number", "account number", "verify account"]
+    if any(urg in text_lower for urg in urgency_keywords) and any(cred in text_lower for cred in credential_keywords):
+        if "Urgency combined with credential request (critical red flag)" not in behavioral_flags:
+            behavioral_flags.append("Urgency combined with credential request (critical red flag)")
+        scam_score += 4
+    
+    # Secrecy + Payment
+    secrecy_keywords = ["don't tell", "secret", "confidential", "don't share", "between us", "private"]
+    if any(sec in text_lower for sec in secrecy_keywords) and any(money in text_lower for money in money_keywords):
+        if "Demands secrecy with financial transaction" not in behavioral_flags:
+            behavioral_flags.append("Demands secrecy with financial transaction")
+        scam_score += 3
+    
+    # Check for phone numbers (potential scam contact)
+    phone_pattern = r"\b(\+91[\s-]?)?\d{10}\b|\b\d{5}[\s-]\d{5}\b"
+    if re.search(phone_pattern, text):
+        if "Contains phone number (potential scammer contact)" not in behavioral_flags:
+            behavioral_flags.append("Contains phone number (potential scammer contact)")
+        scam_score += 1
+    
+    # Check for suspicious links
+    url_pattern = r"(http|https|www\.|bit\.ly|tinyurl|shortened link)"
+    if re.search(url_pattern, text_lower):
+        if "Contains URL/link (possible phishing)" not in behavioral_flags:
+            behavioral_flags.append("Contains URL/link (possible phishing)")
+        scam_score += 2
+    
+    # Check for impersonation of legitimate organizations
+    legit_orgs = ["amazon", "flipkart", "paytm", "google", "microsoft", "apple", "bank", "rbi", "government"]
+    for org in legit_orgs:
+        if org in text_lower:
+            # Check if it's combined with threats or urgency
+            threat_keywords = ["suspend", "block", "freeze", "expire", "urgent", "immediate"]
+            if any(threat in text_lower for threat in threat_keywords):
+                if f"Impersonates {org.title()} with threats" not in behavioral_flags:
+                    behavioral_flags.append(f"Impersonates {org.title()} with threats")
+                scam_score += 2
+                break
+    
+    # Add overall scam score to evaluation
+    logger.info(f"Scam detection score: {scam_score}/10 (patterns: {len(patterns_found)}, flags: {len(behavioral_flags)})")
     
     return patterns_found, behavioral_flags
 
@@ -166,41 +275,70 @@ def extract_text_from_image(image_bytes: bytes) -> str:
 
 
 async def analyze_with_claude(content: str, content_type: str, image_data: Optional[bytes] = None, mime_type: Optional[str] = None) -> Dict[str, Any]:
-    """Analyze content using Claude Sonnet 4.5"""
+    """Analyze content using Claude Sonnet 4.5 with IMPROVED prompts for better accuracy"""
     api_key = os.environ.get('EMERGENT_LLM_KEY', '')
     if not api_key:
         raise ValueError("EMERGENT_LLM_KEY not found in environment")
     
     session_id = str(uuid.uuid4())
     
-    system_message = """You are a SECONDARY opinion provider for content analysis. Your role is to supplement forensic evidence, NOT be the final authority.
+    system_message = """You are an EXPERT content authenticity analyst providing SECONDARY opinion to supplement forensic evidence. Your role is critical but NOT the final authority.
 
-CRITICAL RULES:
-1. Never claim 100% certainty
-2. Your opinion is ONE SIGNAL among many
-3. Focus on subjective patterns that technical forensics might miss
-4. Be conservative in your assessments
+CRITICAL RULES FOR ACCURACY:
+1. Be HIGHLY SPECIFIC - generic observations are not useful
+2. Your confidence must match the strength of evidence you observe
+3. Focus on CONCRETE visual/textual patterns that forensics might miss
+4. Be CONSERVATIVE - it's better to say "Unclear" than make wrong claims
+5. Look for MULTIPLE corroborating signals before high confidence
 
 Provide analysis in this EXACT JSON format:
 {
   "origin": {
     "classification": "Likely AI-Generated" | "Likely Original" | "Unclear / Mixed Signals",
     "confidence": "low" | "medium" | "high",
-    "indicators": ["2-3 specific visual/textual indicators"]
+    "indicators": ["3-5 SPECIFIC concrete indicators you observed"]
   },
-  "ai_signals": ["subtle AI artifacts or patterns you observe"],
-  "human_signals": ["indicators of human authorship"],
-  "forensic_notes": ["observations about style, consistency, context"],
-  "summary": "brief 1-2 sentence opinion"
+  "ai_signals": ["Specific AI artifacts - be detailed, not generic"],
+  "human_signals": ["Specific human authorship indicators - be detailed"],
+  "forensic_notes": ["Technical observations about style, consistency, quality"],
+  "summary": "1-2 sentence SPECIFIC opinion with reasoning"
 }
 
-Look for SUBJECTIVE indicators:
-- AI: Excessive perfection, unnatural smoothness, generic phrasing, context mismatches
-- Human: Natural imperfections, personal style, contextual awareness, authentic errors
-- Images: Visual coherence, lighting consistency, detail realism
-- **DEEPFAKE VIDEOS**: Unnatural facial movements, lip-sync issues, lighting inconsistencies on face, blurry face edges, artifacts around mouth/eyes, unnatural blinking, static background with animated face
+IMPROVED DETECTION CRITERIA:
 
-REMEMBER: Technical forensics (EXIF, metadata, compression) take priority over your opinion."""
+**For AI-Generated Content (look for 2+ signals):**
+- Images: Perfect symmetry, unnatural smoothness in skin/textures, impossible lighting, missing/distorted fine details (hands, text, reflections), repetitive patterns, AI-typical backgrounds
+- Text: Overly formal/perfect grammar, generic corporate tone, lack of personal voice, no colloquialisms, repetitive sentence structures, no typos/errors
+- Videos: Facial warping, inconsistent lighting on face, lip-sync delays, static background, unnatural eye movements, jerky transitions
+- Audio: Robotic intonation, uniform pitch/pace, lack of breath sounds, no background noise, perfect clarity
+
+**For Original/Human Content (look for 2+ signals):**
+- Images: Natural imperfections, realistic lighting/shadows, correct perspective, authentic camera noise/grain, real-world context
+- Text: Personal voice, natural errors/typos, informal language, cultural references, emotional authenticity, conversational flow
+- Videos: Natural camera shake, ambient sounds, realistic environment, authentic facial micro-expressions
+- Audio: Natural breathing, ambient noise, voice variations, hesitations, emotional inflections
+
+**For Images Specifically:**
+- Check hands (AI struggles with fingers/joints)
+- Check text in image (AI often produces gibberish)
+- Check eyes/teeth (AI makes subtle errors)
+- Check backgrounds (AI creates impossible perspectives)
+- Check consistency (lighting direction, shadows, reflections)
+
+**For Deepfake Videos:**
+- Face-background inconsistency (different lighting)
+- Unnatural blinking patterns (too much or too little)
+- Lip-sync misalignment with audio
+- Face edges appear blurred/blended
+- Static hair/clothing while face moves
+- Artifacts around mouth/eyes during speech
+
+**Confidence Levels:**
+- HIGH: 3+ strong corroborating signals clearly point one direction
+- MEDIUM: 2 solid signals with no major contradictions
+- LOW: 1 signal, or conflicting signals, or uncertain observations
+
+REMEMBER: Technical forensics (EXIF, metadata, compression analysis) ALWAYS take priority. Your opinion is supplementary."""
     
     try:
         chat = LlmChat(
@@ -488,20 +626,57 @@ async def analyze_content(
         origin_verdict = OriginVerdict(
             classification=final_classification,
             confidence=final_confidence,
-            indicators=all_indicators[:4] if all_indicators else [classification_reason]
+            indicators=all_indicators[:6] if all_indicators else [classification_reason]  # Show more indicators
         )
         
-        # Determine scam risk level
+        # IMPROVED: Determine scam risk level with better accuracy
         risk_level = "low"
-        # HIGH RISK indicators
-        high_risk_keywords = ["OTP", "police", "fine", "fined", "penalty", "arrest", "block", "suspend", "urgent", "immediate"]
-        if len(scam_patterns) >= 3 or any(keyword.lower() in p.lower() for keyword in high_risk_keywords for p in scam_patterns):
+        risk_score = 0
+        
+        # Calculate risk score based on patterns and flags
+        critical_keywords = ["OTP", "password", "PIN", "CVV", "card number", "account number"]
+        high_risk_keywords = ["police", "arrest", "CBI", "ED", "jail", "custody", "warrant", "fine", "penalty", "frozen", "blocked"]
+        medium_risk_keywords = ["urgent", "immediate", "last chance", "expire", "suspend", "verify", "update", "confirm"]
+        
+        # Check for critical credential harvesting
+        if any(keyword.lower() in content_text.lower() for keyword in critical_keywords):
+            risk_score += 5  # Critical
+            
+        # Check for high-risk authority threats
+        if any(keyword.lower() in content_text.lower() for keyword in high_risk_keywords):
+            risk_score += 3  # High risk
+            
+        # Check for medium-risk pressure tactics
+        if any(keyword.lower() in content_text.lower() for keyword in medium_risk_keywords):
+            risk_score += 2  # Medium risk
+        
+        # Add points for number of patterns detected
+        risk_score += len(scam_patterns)
+        
+        # Add points for dangerous behavioral flags
+        dangerous_flags = [
+            "Requests sensitive authentication data",
+            "Combines authority threat with payment demand",
+            "Urgency combined with credential request",
+            "Demands secrecy with financial transaction"
+        ]
+        for flag in behavioral_flags:
+            if any(danger in flag for danger in dangerous_flags):
+                risk_score += 2
+        
+        # Determine final risk level based on total score
+        if risk_score >= 8:
             risk_level = "high"
-        # Also check for combination of urgency + financial threat
-        elif len(scam_patterns) >= 2 and any("urgency" in p.lower() or "phishing" in p.lower() for p in scam_patterns):
+        elif risk_score >= 5 or len(scam_patterns) >= 3:
             risk_level = "high"
+        elif risk_score >= 3 or len(scam_patterns) >= 2:
+            risk_level = "medium"
         elif len(scam_patterns) >= 1:
             risk_level = "medium"
+        else:
+            risk_level = "low"
+        
+        logger.info(f"Scam risk assessment: {risk_level} (score: {risk_score}, patterns: {len(scam_patterns)}, flags: {len(behavioral_flags)})")
         
         scam_assessment = ScamAssessment(
             risk_level=risk_level,
