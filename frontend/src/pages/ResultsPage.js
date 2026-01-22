@@ -73,6 +73,8 @@ const ResultsPage = () => {
   const getOriginColor = (classification) => {
     if (classification === 'Likely AI-Generated') return 'text-purple-700 bg-purple-50 border-purple-200';
     if (classification === 'Likely Original') return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    if (classification === 'Hybrid / Manipulated') return 'text-orange-700 bg-orange-50 border-orange-200';
+    if (classification === 'Inconclusive') return 'text-slate-700 bg-slate-50 border-slate-200';
     if (classification === 'Unclear / Mixed Signals') return 'text-amber-700 bg-amber-50 border-amber-200';
     return 'text-slate-700 bg-slate-50 border-slate-200';
   };
