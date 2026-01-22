@@ -1,7 +1,11 @@
-from fastapi import FastAPI, APIRouter, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, APIRouter, File, UploadFile, Form, HTTPException, Depends, Response, Request
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 import logging
 from pathlib import Path
@@ -20,23 +24,12 @@ import pytesseract
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 from forensics import ForensicAnalyzer, fuse_evidence
+from cache_manager import CacheManager
+from pdf_generator import PDFReportGenerator
+from auth import get_api_key, get_optional_api_key, DEFAULT_API_KEY
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
-
-# Initialize forensic analyzer
-forensic_analyzer = ForensicAnalyzer()
-
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
 
 # Configure logging
 logging.basicConfig(
@@ -44,6 +37,43 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Initialize forensic analyzer
+forensic_analyzer = ForensicAnalyzer()
+
+# Initialize cache manager
+cache_manager = CacheManager(
+    redis_url=os.environ.get('REDIS_URL', 'redis://localhost:6379'),
+    ttl=int(os.environ.get('CACHE_TTL', 86400))  # 24 hours default
+)
+
+# Initialize PDF generator
+pdf_generator = PDFReportGenerator()
+
+# MongoDB connection
+mongo_url = os.environ['MONGO_URL']
+client = AsyncIOMotorClient(mongo_url)
+db = client[os.environ['DB_NAME']]
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
+# Create the main app without a prefix
+app = FastAPI(
+    title="VeriSure API",
+    description="Advanced AI Origin & Scam Forensics with Caching, Rate Limiting, and PDF Export",
+    version="2.0.0"
+)
+
+# Add rate limit exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Create a router with the /api prefix
+api_router = APIRouter(prefix="/api")
+
+# Log API key for users
+logger.info(f"🔑 Default API Key: {DEFAULT_API_KEY}")
 
 
 # Models
@@ -440,14 +470,31 @@ async def fetch_url_content(url: str) -> tuple[str, Optional[bytes], str]:
 
 
 @api_router.get("/")
-async def root():
-    return {"message": "VeriSure API - Advanced AI Origin & Scam Forensics"}
+@limiter.limit("100/minute")
+async def root(request: Request):
+    return {
+        "message": "VeriSure API - Advanced AI Origin & Scam Forensics",
+        "version": "2.0.0",
+        "features": [
+            "Multi-modal analysis (text, image, video, audio)",
+            "India-specific scam detection",
+            "Forensic + AI hybrid analysis",
+            "Redis caching for performance",
+            "Rate limiting protection",
+            "Analysis history",
+            "PDF export",
+            "API key authentication"
+        ]
+    }
 
 @api_router.post("/analyze", response_model=AnalysisReport)
+@limiter.limit("20/minute")
 async def analyze_content(
+    request: Request,
     input_type: str = Form(...),
     content: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None)
+    file: Optional[UploadFile] = File(None),
+    api_key_info: Optional[Dict] = Depends(get_optional_api_key)
 ):
     """Main analysis endpoint - handles text, URL, and file uploads"""
     
@@ -520,6 +567,13 @@ async def analyze_content(
         
         # Compute content hash
         content_hash = compute_content_hash(content_bytes)
+        
+        # CHECK CACHE FIRST (Quick Win #5 - Redis Caching)
+        cached_report = cache_manager.get_cached_analysis(content_hash)
+        if cached_report:
+            logger.info(f"✅ Returning cached analysis for hash: {content_hash[:16]}...")
+            # Return cached report directly
+            return AnalysisReport(**cached_report)
         
         # STEP 1: FORENSIC ANALYSIS FIRST (primary signal)
         logger.info(f"Starting forensic analysis for {analysis_type}")
@@ -763,9 +817,14 @@ async def analyze_content(
             analysis_summary=analysis_summary
         )
         
-        # Store report in database
+        # Convert to dict for caching (before MongoDB adds _id)
         report_dict = report.model_dump()
-        await db.analysis_reports.insert_one(report_dict)
+        
+        # CACHE THE REPORT FIRST (Quick Win #5 - Redis Caching)
+        cache_manager.cache_analysis(content_hash, report_dict)
+        
+        # Store report in database (MongoDB will add _id)
+        await db.analysis_reports.insert_one(report_dict.copy())
         
         return report
         
@@ -774,12 +833,184 @@ async def analyze_content(
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @api_router.get("/report/{report_id}")
-async def get_report(report_id: str):
+@limiter.limit("50/minute")
+async def get_report(request: Request, report_id: str):
     """Retrieve a stored analysis report"""
     report = await db.analysis_reports.find_one({"report_id": report_id}, {"_id": 0})
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     return report
+
+# ========== NEW ENDPOINTS - QUICK WINS ==========
+
+@api_router.get("/history")
+@limiter.limit("30/minute")
+async def get_analysis_history(
+    request: Request,
+    limit: int = 50,
+    skip: int = 0,
+    risk_level: Optional[str] = None
+):
+    """
+    Get analysis history with pagination and filtering
+    Quick Win #3 - Analysis History Storage
+    """
+    try:
+        # Build query
+        query = {}
+        if risk_level:
+            query["scam_assessment.risk_level"] = risk_level.lower()
+        
+        # Get total count
+        total = await db.analysis_reports.count_documents(query)
+        
+        # Get reports
+        cursor = db.analysis_reports.find(
+            query,
+            {"_id": 0}
+        ).sort("timestamp", -1).skip(skip).limit(limit)
+        
+        reports = await cursor.to_list(length=limit)
+        
+        return {
+            "total": total,
+            "limit": limit,
+            "skip": skip,
+            "reports": reports
+        }
+    except Exception as e:
+        logger.error(f"History retrieval error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve history: {str(e)}")
+
+@api_router.get("/export/pdf/{report_id}")
+@limiter.limit("20/minute")
+async def export_pdf_report(request: Request, report_id: str):
+    """
+    Export analysis report as PDF
+    Quick Win #4 - PDF Export with ReportLab
+    """
+    try:
+        # Get report from database
+        report = await db.analysis_reports.find_one({"report_id": report_id}, {"_id": 0})
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        # Generate PDF
+        pdf_buffer = pdf_generator.generate_report(report)
+        
+        # Return as streaming response
+        headers = {
+            'Content-Disposition': f'attachment; filename="verisure_report_{report_id[:8]}.pdf"',
+            'Content-Type': 'application/pdf'
+        }
+        
+        return StreamingResponse(
+            pdf_buffer,
+            headers=headers,
+            media_type='application/pdf'
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"PDF export error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+
+@api_router.get("/cache/stats")
+@limiter.limit("10/minute")
+async def get_cache_stats(
+    request: Request,
+    api_key_info: Dict = Depends(get_api_key)
+):
+    """
+    Get cache statistics (Protected endpoint)
+    Requires API key authentication
+    """
+    stats = cache_manager.get_cache_stats()
+    return {
+        "cache_stats": stats,
+        "authenticated_user": api_key_info.get('name')
+    }
+
+@api_router.post("/cache/invalidate/{content_hash}")
+@limiter.limit("10/minute")
+async def invalidate_cache(
+    request: Request,
+    content_hash: str,
+    api_key_info: Dict = Depends(get_api_key)
+):
+    """
+    Invalidate cached analysis (Protected endpoint)
+    Requires API key authentication
+    """
+    success = cache_manager.invalidate_cache(content_hash)
+    if success:
+        return {
+            "message": "Cache invalidated successfully",
+            "content_hash": content_hash
+        }
+    else:
+        raise HTTPException(status_code=404, detail="Cache entry not found or error occurred")
+
+@api_router.get("/analytics/summary")
+@limiter.limit("20/minute")
+async def get_analytics_summary(request: Request):
+    """
+    Get analytics summary for reports
+    Quick Win #3 Enhancement - Analytics
+    """
+    try:
+        # Get total analyses
+        total_analyses = await db.analysis_reports.count_documents({})
+        
+        # Get risk level breakdown
+        high_risk = await db.analysis_reports.count_documents({"scam_assessment.risk_level": "high"})
+        medium_risk = await db.analysis_reports.count_documents({"scam_assessment.risk_level": "medium"})
+        low_risk = await db.analysis_reports.count_documents({"scam_assessment.risk_level": "low"})
+        
+        # Get origin classification breakdown
+        ai_generated = await db.analysis_reports.count_documents(
+            {"origin_verdict.classification": {"$regex": "AI-Generated", "$options": "i"}}
+        )
+        original = await db.analysis_reports.count_documents(
+            {"origin_verdict.classification": {"$regex": "Original", "$options": "i"}}
+        )
+        
+        # Get recent analyses (last 24 hours)
+        from datetime import timedelta
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        recent_count = await db.analysis_reports.count_documents(
+            {"timestamp": {"$gte": yesterday}}
+        )
+        
+        return {
+            "total_analyses": total_analyses,
+            "recent_24h": recent_count,
+            "risk_breakdown": {
+                "high": high_risk,
+                "medium": medium_risk,
+                "low": low_risk
+            },
+            "origin_breakdown": {
+                "ai_generated": ai_generated,
+                "original": original,
+                "other": total_analyses - ai_generated - original
+            },
+            "cache_stats": cache_manager.get_cache_stats()
+        }
+    except Exception as e:
+        logger.error(f"Analytics error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get analytics: {str(e)}")
+
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "mongodb": "connected" if client else "disconnected",
+        "cache": cache_manager.get_cache_stats().get("status", "unknown"),
+        "version": "2.0.0"
+    }
 
 # Include the router in the main app
 app.include_router(api_router)
