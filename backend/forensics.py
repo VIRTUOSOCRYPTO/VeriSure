@@ -718,13 +718,14 @@ class ForensicAnalyzer:
 
 def fuse_evidence(forensic_analysis: Dict, ai_analysis: Dict) -> Tuple[str, str, str, List[str]]:
     """
-    Fuse forensic evidence with AI opinion using strict rules.
+    Fuse forensic evidence with AI opinion using IMPROVED strict rules.
     
-    Rules:
-    1. ≥2 AI indicators + no strong human signals → Likely AI-Generated
-    2. Strong human metadata + no AI artifacts → Likely Original
-    3. Human content + editing artifacts → Hybrid / Manipulated
-    4. Missing or conflicting evidence → Inconclusive
+    Enhanced Rules for Better Accuracy:
+    1. ≥3 AI indicators OR (≥2 AI + AI opinion agrees) → Likely AI-Generated
+    2. ≥3 Human signals OR (≥2 Human + no AI signals) → Likely Original
+    3. Human + manipulation → Hybrid / Manipulated
+    4. Weighted scoring system for better confidence levels
+    5. AI opinion only used as tiebreaker
     
     Returns:
         (classification, confidence, reason, all_indicators)
@@ -739,14 +740,16 @@ def fuse_evidence(forensic_analysis: Dict, ai_analysis: Dict) -> Tuple[str, str,
     # Extract AI opinion indicators
     ai_opinion = ai_analysis.get('origin', {})
     ai_classification = ai_opinion.get('classification', 'Unclear / Mixed Signals')
+    ai_confidence = ai_opinion.get('confidence', 'low')
     ai_indicators = ai_analysis.get('ai_signals', [])
+    human_opinion_signals = ai_analysis.get('human_signals', [])
     
     # Combine all indicators for final report
     all_indicators = (
         [f"[FORENSIC] {s}" for s in human_signals] +
-        [f"[FORENSIC] {s}" for s in ai_signals] +
-        [f"[FORENSIC] {s}" for s in manipulation_signals] +
-        [f"[AI OPINION] {s}" for s in ai_indicators[:2]]  # Limit AI opinion signals
+        [f"[FORENSIC AI] {s}" for s in ai_signals] +
+        [f"[FORENSIC EDIT] {s}" for s in manipulation_signals] +
+        [f"[AI OPINION] {s}" for s in ai_indicators[:3]]  # Include more AI opinion signals
     )
     
     # Evidence counts
@@ -755,52 +758,102 @@ def fuse_evidence(forensic_analysis: Dict, ai_analysis: Dict) -> Tuple[str, str,
     num_manipulation = len(manipulation_signals)
     num_inconclusive = len(inconclusive_signals)
     
-    # Calculate confidence based on evidence availability
+    # Calculate total evidence score with weighted importance
     total_evidence = num_human + num_ai + num_manipulation
     
-    # RULE 1: Strong AI evidence
-    if num_ai >= 2 and num_human == 0:
-        confidence = 'high' if num_ai >= 3 else 'medium'
-        reason = f"Forensic analysis detected {num_ai} AI generation indicators with no human capture signals"
+    # Check if AI opinion agrees with forensics (for stronger confidence)
+    ai_agrees_ai_generated = 'likely ai' in ai_classification.lower() or 'ai-generated' in ai_classification.lower()
+    ai_agrees_original = 'likely original' in ai_classification.lower() or 'likely human' in ai_classification.lower()
+    ai_opinion_strong = ai_confidence in ['high', 'medium']
+    
+    # RULE 1: Strong AI-Generated Evidence
+    # Need at least 2 AI signals, or 1 strong signal + AI opinion agreement
+    if num_ai >= 3 and num_human == 0:
+        confidence = 'high'
+        reason = f"Strong forensic evidence: {num_ai} AI generation indicators detected with no authentic signals"
+        return "Likely AI-Generated", confidence, reason, all_indicators
+    elif num_ai >= 2 and num_human == 0:
+        if ai_agrees_ai_generated and ai_opinion_strong:
+            confidence = 'high'
+            reason = f"Forensic analysis ({num_ai} AI indicators) strongly supported by AI opinion analysis"
+        else:
+            confidence = 'medium'
+            reason = f"Forensic analysis detected {num_ai} AI generation indicators with no human capture signals"
+        return "Likely AI-Generated", confidence, reason, all_indicators
+    elif num_ai >= 1 and num_human == 0 and ai_agrees_ai_generated and ai_opinion_strong:
+        confidence = 'medium'
+        reason = f"Forensic AI indicator combined with strong AI opinion suggests synthetic content"
         return "Likely AI-Generated", confidence, reason, all_indicators
     
-    # RULE 2: Strong human evidence
-    if num_human >= 2 and num_ai == 0:
-        confidence = 'high' if num_human >= 3 else 'medium'
-        reason = f"Forensic analysis detected {num_human} authentic capture signals with no AI indicators"
+    # RULE 2: Strong Human/Original Evidence
+    # Need at least 2 human signals, or strong metadata + no AI signals
+    if num_human >= 3 and num_ai == 0:
+        confidence = 'high'
+        reason = f"Strong authenticity: {num_human} genuine capture signals with no AI indicators"
+        return "Likely Original", confidence, reason, all_indicators
+    elif num_human >= 2 and num_ai == 0:
+        if ai_agrees_original and ai_opinion_strong:
+            confidence = 'high'
+            reason = f"Forensic authenticity ({num_human} signals) confirmed by AI visual analysis"
+        else:
+            confidence = 'medium'
+            reason = f"Forensic analysis detected {num_human} authentic capture signals with no AI indicators"
+        return "Likely Original", confidence, reason, all_indicators
+    elif num_human >= 1 and num_ai == 0 and ai_agrees_original and ai_opinion_strong:
+        confidence = 'medium'
+        reason = f"Authentic metadata combined with AI opinion suggests original content"
         return "Likely Original", confidence, reason, all_indicators
     
-    # RULE 3: Hybrid / Manipulated (human + manipulation signals)
-    if num_human >= 1 and num_manipulation >= 1:
-        confidence = 'medium' if (num_human + num_manipulation) >= 3 else 'low'
-        reason = f"Original content with {num_manipulation} manipulation/editing indicators detected"
+    # RULE 3: Hybrid / Manipulated (human source + editing/manipulation)
+    if num_human >= 1 and num_manipulation >= 2:
+        confidence = 'high' if num_manipulation >= 3 else 'medium'
+        reason = f"Original content detected with {num_manipulation} manipulation indicators (edited/processed)"
+        return "Hybrid / Manipulated", confidence, reason, all_indicators
+    elif num_human >= 1 and num_manipulation >= 1:
+        confidence = 'medium'
+        reason = f"Authentic source with editing artifacts detected"
         return "Hybrid / Manipulated", confidence, reason, all_indicators
     
-    # RULE 4: Conflicting evidence
+    # RULE 4: Conflicting Evidence - be more nuanced
     if num_human >= 1 and num_ai >= 1:
-        confidence = 'low'
-        reason = f"Conflicting evidence: {num_human} human signals vs {num_ai} AI indicators"
-        return "Unclear / Mixed Signals", confidence, reason, all_indicators
+        # Use AI opinion as tiebreaker
+        if num_ai > num_human and ai_agrees_ai_generated:
+            confidence = 'low'
+            reason = f"Mixed signals: {num_ai} AI vs {num_human} human indicators, leaning AI-generated"
+            return "Likely AI-Generated", confidence, reason, all_indicators
+        elif num_human > num_ai and ai_agrees_original:
+            confidence = 'low'
+            reason = f"Mixed signals: {num_human} human vs {num_ai} AI indicators, leaning original"
+            return "Likely Original", confidence, reason, all_indicators
+        else:
+            confidence = 'low'
+            reason = f"Conflicting evidence: {num_human} human signals vs {num_ai} AI indicators"
+            return "Unclear / Mixed Signals", confidence, reason, all_indicators
     
-    # RULE 5: Insufficient evidence - use AI opinion as weak signal
-    if total_evidence < 2 or num_inconclusive > 0:
+    # RULE 5: Single strong indicator with AI opinion support
+    if total_evidence >= 1 and total_evidence < 2:
+        if num_ai == 1 and ai_agrees_ai_generated and ai_opinion_strong:
+            confidence = 'low'
+            reason = f"Limited forensic evidence supported by AI opinion suggests synthetic content"
+            return "Likely AI-Generated", confidence, reason, all_indicators
+        elif num_human == 1 and ai_agrees_original and ai_opinion_strong:
+            confidence = 'low'
+            reason = f"Limited forensic evidence supported by AI opinion suggests original content"
+            return "Likely Original", confidence, reason, all_indicators
+    
+    # RULE 6: Insufficient evidence - use AI opinion as weak signal
+    if total_evidence < 1 or num_inconclusive > 0:
         confidence = 'low'
         
         # Check AI opinion only if we have insufficient forensic evidence
-        if 'likely ai' in ai_classification.lower():
-            reason = f"Limited forensic evidence; AI analysis suggests synthetic content (weak signal)"
+        if ai_agrees_ai_generated and ai_opinion_strong:
+            reason = f"No forensic evidence available; AI opinion suggests synthetic content (weak signal)"
             return "Unclear / Mixed Signals", confidence, reason, all_indicators
-        elif 'likely original' in ai_classification.lower() or 'likely human' in ai_classification.lower():
-            reason = f"Limited forensic evidence; AI analysis suggests original content (weak signal)"
+        elif ai_agrees_original and ai_opinion_strong:
+            reason = f"No forensic evidence available; AI opinion suggests original content (weak signal)"
             return "Unclear / Mixed Signals", confidence, reason, all_indicators
         
-        reason = f"Insufficient forensic evidence for classification (only {total_evidence} indicators)"
-        return "Inconclusive", confidence, reason, all_indicators
-    
-    # RULE 6: Single indicator - inconclusive
-    if total_evidence == 1:
-        confidence = 'low'
-        reason = "Only one forensic indicator detected - insufficient for classification"
+        reason = f"Insufficient evidence for classification ({total_evidence} indicators detected)"
         return "Inconclusive", confidence, reason, all_indicators
     
     # Default: Inconclusive
