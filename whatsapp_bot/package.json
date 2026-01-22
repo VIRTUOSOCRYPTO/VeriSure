@@ -1,0 +1,28 @@
+{
+  "name": "verisure-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp Bot for VeriSure Scam Detection",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "keywords": ["whatsapp", "baileys", "scam-detection"],
+  "author": "VeriSure",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "qrcode-terminal": "^0.12.0",
+    "qrcode": "^1.5.3",
+    "axios": "^1.6.7",
+    "express": "^4.18.2",
+    "pino": "^8.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "form-data": "^4.0.0",
+    "mongodb": "^6.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
