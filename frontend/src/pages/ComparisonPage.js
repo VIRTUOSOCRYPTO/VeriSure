@@ -38,23 +38,40 @@ const ComparisonPage = () => {
   const fetchReports = async (reportIds) => {
     try {
       setLoading(true);
-      const fetchPromises = reportIds.map(id => 
-        axios.get(`${API}/report/${id}`)
-      );
-      const responses = await Promise.all(fetchPromises);
-      const fetchedReports = responses.map(res => res.data);
-      setReports(fetchedReports);
-      generateComparison(fetchedReports);
+      
+      // Use new backend comparison endpoint for enhanced analysis
+      const response = await axios.post(`${API}/compare`, reportIds, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const { reports, analysis } = response.data;
+      setReports(reports);
+      
+      // Generate client-side comparison data with backend insights
+      generateComparison(reports, analysis);
+      
     } catch (error) {
-      toast.error("Failed to load reports for comparison");
-      console.error(error);
-      navigate('/history');
+      // Fallback to individual fetching if comparison endpoint fails
+      console.warn("Comparison endpoint failed, falling back to individual fetching:", error);
+      try {
+        const fetchPromises = reportIds.map(id => 
+          axios.get(`${API}/report/${id}`)
+        );
+        const responses = await Promise.all(fetchPromises);
+        const fetchedReports = responses.map(res => res.data);
+        setReports(fetchedReports);
+        generateComparison(fetchedReports, null);
+      } catch (fallbackError) {
+        toast.error("Failed to load reports for comparison");
+        console.error(fallbackError);
+        navigate('/history');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const generateComparison = (reportsData) => {
+  const generateComparison = (reportsData, backendAnalysis = null) => {
     if (reportsData.length < 2) return;
 
     // Extract all unique patterns
@@ -68,7 +85,7 @@ const ComparisonPage = () => {
       report.origin_verdict.indicators.forEach(i => allIndicators.add(i));
     });
 
-    // Find common and unique patterns
+    // Find common and unique patterns (client-side fallback)
     const commonPatterns = Array.from(allScamPatterns).filter(pattern =>
       reportsData.every(report => report.scam_assessment.scam_patterns.includes(pattern))
     );
@@ -78,13 +95,31 @@ const ComparisonPage = () => {
       patterns: report.scam_assessment.scam_patterns.filter(p => !commonPatterns.includes(p))
     }));
 
-    setComparisonData({
+    // Use backend analysis if available for enhanced insights
+    const comparisonResult = {
       allScamPatterns: Array.from(allScamPatterns),
       allBehavioralFlags: Array.from(allBehavioralFlags),
       allIndicators: Array.from(allIndicators),
-      commonPatterns,
-      uniquePatterns
-    });
+      commonPatterns: backendAnalysis?.pattern_analysis?.common_patterns || commonPatterns,
+      frequentPatterns: backendAnalysis?.pattern_analysis?.frequent_patterns || [],
+      uniquePatterns,
+      backendInsights: backendAnalysis?.insights || [],
+      riskAnalysis: backendAnalysis?.risk_analysis || null,
+      recommendations: backendAnalysis?.recommendations || []
+    };
+
+    setComparisonData(comparisonResult);
+    
+    // Show insights as toasts if available
+    if (backendAnalysis?.insights && backendAnalysis.insights.length > 0) {
+      backendAnalysis.insights.forEach(insight => {
+        if (insight.severity === 'critical') {
+          toast.error(insight.message);
+        } else if (insight.severity === 'high') {
+          toast.warning(insight.message);
+        }
+      });
+    }
   };
 
   const getRiskIcon = (level) => {
@@ -199,6 +234,53 @@ const ComparisonPage = () => {
           </p>
         </div>
 
+        {/* Backend Insights & Recommendations */}
+        {comparisonData?.backendInsights && comparisonData.backendInsights.length > 0 && (
+          <div className="mb-8 space-y-4" data-testid="backend-insights">
+            {comparisonData.backendInsights.map((insight, idx) => {
+              const bgColor = insight.severity === 'critical' ? 'bg-rose-50 border-rose-400' :
+                              insight.severity === 'high' ? 'bg-rose-50 border-rose-300' :
+                              insight.severity === 'medium' ? 'bg-amber-50 border-amber-300' :
+                              'bg-blue-50 border-blue-300';
+              const iconColor = insight.severity === 'critical' || insight.severity === 'high' ? 'text-rose-600' :
+                                insight.severity === 'medium' ? 'text-amber-600' :
+                                'text-blue-600';
+              
+              return (
+                <div key={idx} className={`${bgColor} border-2 rounded-sm p-4 flex items-start gap-3`}>
+                  <AlertTriangle className={`w-5 h-5 ${iconColor} flex-shrink-0 mt-0.5`} />
+                  <div>
+                    <div className="font-mono text-sm font-semibold text-slate-900 mb-1">
+                      {insight.type.toUpperCase()} - {insight.severity.toUpperCase()}
+                    </div>
+                    <p className="font-sans text-sm text-slate-700">{insight.message}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {comparisonData?.recommendations && comparisonData.recommendations.length > 0 && (
+          <div className="mb-8 bg-indigo-50 border-2 border-indigo-300 rounded-sm p-6" data-testid="recommendations">
+            <h3 className="font-mono text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-indigo-600" />
+              Recommendations
+            </h3>
+            <ul className="space-y-2">
+              {comparisonData.recommendations.map((rec, idx) => (
+                <li key={idx} className="flex items-start gap-3 bg-white p-3 rounded border border-indigo-200">
+                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-mono text-xs flex-shrink-0">
+                    {idx + 1}
+                  </div>
+                  <span className="font-sans text-sm text-slate-800">{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Risk Level Comparison Summary */}
         <div className="mb-8 bg-white border-2 border-slate-200 rounded-sm p-6" data-testid="risk-comparison-summary">
           <h3 className="font-mono text-lg font-bold text-slate-900 mb-4">Risk Level Overview</h3>
@@ -232,11 +314,33 @@ const ComparisonPage = () => {
               <CheckCircle className="w-5 h-5 text-blue-600" />
               Common Scam Patterns ({comparisonData.commonPatterns.length})
             </h3>
+            <p className="text-sm text-slate-600 font-sans mb-4">These patterns appear in ALL reports</p>
             <div className="space-y-2">
               {comparisonData.commonPatterns.map((pattern, idx) => (
                 <div key={idx} className="flex items-start gap-3 bg-white p-3 rounded border border-blue-200">
                   <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-mono text-xs flex-shrink-0">
                     ✓
+                  </div>
+                  <span className="font-sans text-sm text-slate-800">{pattern}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Frequent Patterns (appear in ≥50% of reports) */}
+        {comparisonData?.frequentPatterns && comparisonData.frequentPatterns.length > 0 && (
+          <div className="mb-8 bg-purple-50 border-2 border-purple-200 rounded-sm p-6" data-testid="frequent-patterns">
+            <h3 className="font-mono text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-purple-600" />
+              Frequent Patterns ({comparisonData.frequentPatterns.length})
+            </h3>
+            <p className="text-sm text-slate-600 font-sans mb-4">These patterns appear in ≥50% of reports</p>
+            <div className="space-y-2">
+              {comparisonData.frequentPatterns.map((pattern, idx) => (
+                <div key={idx} className="flex items-start gap-3 bg-white p-3 rounded border border-purple-200">
+                  <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center font-mono text-xs flex-shrink-0">
+                    ~
                   </div>
                   <span className="font-sans text-sm text-slate-800">{pattern}</span>
                 </div>
