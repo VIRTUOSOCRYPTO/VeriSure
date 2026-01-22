@@ -7,6 +7,7 @@ import axios from "axios";
 import FontSizeControl from "@/components/FontSizeControl";
 import LanguageSelector from "@/components/LanguageSelector";
 import VoiceInput from "@/components/VoiceInput";
+import AsyncJobStatus from "@/components/AsyncJobStatus";
 import { useLanguage } from "@/context/LanguageContext";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -20,6 +21,7 @@ const AnalysisPage = () => {
   const [textInput, setTextInput] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [asyncJob, setAsyncJob] = useState(null); // For video/audio async processing
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -75,8 +77,19 @@ const AnalysisPage = () => {
         },
       });
 
-      toast.success(t('analysisComplete'));
-      navigate(`/results/${response.data.report_id}`, { state: { report: response.data } });
+      // Check if response is async job (video/audio) or immediate report
+      if (response.data.job_id) {
+        // Async job - show polling UI
+        setAsyncJob({
+          job_id: response.data.job_id,
+          type: selectedFile?.type?.startsWith('video/') ? 'video' : 'audio'
+        });
+        toast.info("Processing started - this may take a few moments");
+      } else {
+        // Immediate result - navigate to results
+        toast.success(t('analysisComplete'));
+        navigate(`/results/${response.data.report_id}`, { state: { report: response.data } });
+      }
     } catch (error) {
       console.error("Analysis error:", error);
       toast.error(error.response?.data?.detail || t('analysisFailed'));
@@ -100,6 +113,13 @@ const AnalysisPage = () => {
               <h1 className="font-mono font-bold text-2xl text-slate-900">{t('appTitle')}</h1>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/batch')}
+                className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                data-testid="batch-btn"
+              >
+                Batch
+              </button>
               <LanguageSelector />
               <FontSizeControl />
             </div>
@@ -228,6 +248,16 @@ const AnalysisPage = () => {
                   <p>✓ Generating evidence report...</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Async Job Status Polling */}
+          {asyncJob && !loading && (
+            <div className="mt-8">
+              <AsyncJobStatus 
+                jobId={asyncJob.job_id} 
+                jobType={asyncJob.type}
+              />
             </div>
           )}
         </div>
