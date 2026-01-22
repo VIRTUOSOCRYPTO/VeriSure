@@ -103,35 +103,35 @@ const HomePage = () => {
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">Core Capabilities</div>
-            <h3 className="font-mono font-semibold text-3xl tracking-tight text-slate-900" data-testid="features-title">Forensic-Grade Protection</h3>
+            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">{t('coreCapabilities')}</div>
+            <h3 className="font-mono font-semibold text-3xl tracking-tight text-slate-900" data-testid="features-title">{t('forensicGradeProtection')}</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-origin">
               <div className="scanline"></div>
               <Eye className="w-12 h-12 text-slate-900 mb-4" />
-              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">Origin Detection</h4>
+              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">{t('originDetection')}</h4>
               <p className="font-sans text-base text-slate-600 leading-relaxed">
-                Identify AI-generated vs human-created content using advanced pattern recognition and artifact detection.
+                {t('originDetectionDesc')}
               </p>
             </div>
             
             <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-scam">
               <div className="scanline"></div>
               <Shield className="w-12 h-12 text-slate-900 mb-4" />
-              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">Scam Assessment</h4>
+              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">{t('scamAssessment')}</h4>
               <p className="font-sans text-base text-slate-600 leading-relaxed">
-                Detect India-specific scam patterns including fake police threats, banking fraud, and emotional manipulation.
+                {t('scamAssessmentDesc')}
               </p>
             </div>
             
             <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-evidence">
               <div className="scanline"></div>
               <Lock className="w-12 h-12 text-slate-900 mb-4" />
-              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">Evidence Integrity</h4>
+              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">{t('evidenceIntegrity')}</h4>
               <p className="font-sans text-base text-slate-600 leading-relaxed">
-                Generate cryptographic hashes and timestamped reports for potential legal or documentation needs.
+                {t('evidenceIntegrityDesc')}
               </p>
             </div>
           </div>
@@ -142,8 +142,8 @@ const HomePage = () => {
       <section id="how-it-works" className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">Process</div>
-            <h3 className="font-mono font-semibold text-3xl tracking-tight text-slate-900">How VeriSure Works</h3>
+            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">{t('process')}</div>
+            <h3 className="font-mono font-semibold text-3xl tracking-tight text-slate-900">{t('howVeriSureWorks')}</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -151,24 +151,24 @@ const HomePage = () => {
               <div className="flex gap-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-mono text-sm">1</div>
                 <div>
-                  <h5 className="font-mono font-medium text-lg text-slate-800 mb-2">Submit Content</h5>
-                  <p className="font-sans text-sm text-slate-600">Upload images, videos, paste text messages, or provide URLs for analysis.</p>
+                  <h5 className="font-mono font-medium text-lg text-slate-800 mb-2">{t('step1Title')}</h5>
+                  <p className="font-sans text-sm text-slate-600">{t('step1Desc')}</p>
                 </div>
               </div>
               
               <div className="flex gap-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-mono text-sm">2</div>
                 <div>
-                  <h5 className="font-mono font-medium text-lg text-slate-800 mb-2">Multi-Layer Analysis</h5>
-                  <p className="font-sans text-sm text-slate-600">AI reasoning, metadata inspection, and scam pattern detection run in parallel.</p>
+                  <h5 className="font-mono font-medium text-lg text-slate-800 mb-2">{t('step2Title')}</h5>
+                  <p className="font-sans text-sm text-slate-600">{t('step2Desc')}</p>
                 </div>
               </div>
               
               <div className="flex gap-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-mono text-sm">3</div>
                 <div>
-                  <h5 className="font-mono font-medium text-lg text-slate-800 mb-2">Receive Report</h5>
-                  <p className="font-sans text-sm text-slate-600">Get origin classification, scam risk level, evidence summary, and actionable recommendations.</p>
+                  <h5 className="font-mono font-medium text-lg text-slate-800 mb-2">{t('step3Title')}</h5>
+                  <p className="font-sans text-sm text-slate-600">{t('step3Desc')}</p>
                 </div>
               </div>
             </div>
@@ -189,15 +189,14 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <Lock className="w-12 h-12 text-slate-900 mx-auto mb-6" />
-            <h4 className="font-mono font-semibold text-2xl text-slate-900 mb-4">Privacy First</h4>
+            <h4 className="font-mono font-semibold text-2xl text-slate-900 mb-4">{t('privacyFirst')}</h4>
             <p className="font-sans text-base text-slate-600 leading-relaxed mb-6">
-              VeriSure does not store uploaded files. All analysis is ephemeral. Reports are generated with cryptographic hashes 
-              for evidence integrity, but original content is never retained on our servers.
+              {t('privacyDesc')}
             </p>
             <ul className="font-mono text-sm text-slate-600 space-y-2">
-              <li>✓ No user accounts required</li>
-              <li>✓ No training on your data</li>
-              <li>✓ Automatic content deletion after analysis</li>
+              <li>{t('privacyPoint1')}</li>
+              <li>{t('privacyPoint2')}</li>
+              <li>{t('privacyPoint3')}</li>
             </ul>
           </div>
         </div>
@@ -209,10 +208,10 @@ const HomePage = () => {
           <div className="text-center">
             <div className="flex items-center justify-center space-x-3 mb-4">
               <Shield className="w-6 h-6" />
-              <span className="font-mono font-bold text-xl">VeriSure</span>
+              <span className="font-mono font-bold text-xl">{t('appTitle')}</span>
             </div>
-            <p className="font-mono text-xs text-slate-400 uppercase tracking-widest">Advanced AI Origin & Scam Forensics</p>
-            <p className="font-sans text-sm text-slate-500 mt-4">For defensive verification only. Results are probabilistic, not absolute.</p>
+            <p className="font-mono text-xs text-slate-400 uppercase tracking-widest">{t('footer')}</p>
+            <p className="font-sans text-sm text-slate-500 mt-4">{t('footerDisclaimer')}</p>
           </div>
         </div>
       </footer>
