@@ -106,6 +106,30 @@ const ResultsPage = () => {
               <h1 className="font-mono font-bold text-2xl text-slate-900">{t('appTitle')}</h1>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await axios.get(`${API}/export/pdf/${reportId}`, {
+                      responseType: 'blob'
+                    });
+                    const url = window.URL.createObjectURL(new Blob([response.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `verisure_report_${reportId.slice(0, 8)}.pdf`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    toast.success("PDF downloaded successfully");
+                  } catch (error) {
+                    toast.error("Failed to download PDF");
+                  }
+                }}
+                className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-4 py-2 font-mono text-sm flex items-center gap-2 transition-all min-h-[44px]"
+                data-testid="export-pdf-btn"
+              >
+                <FileText className="w-4 h-4" />
+                Export PDF
+              </button>
               <WhatsAppShare report={report} />
               <LanguageSelector />
               <FontSizeControl />
