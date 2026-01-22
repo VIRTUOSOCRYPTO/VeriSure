@@ -6,7 +6,7 @@ import BatchAnalysisPage from "@/pages/BatchAnalysisPage";
 import ResultsPage from "@/pages/ResultsPage";
 import HistoryPage from "@/pages/HistoryPage";
 import ComparisonPage from "@/pages/ComparisonPage";
-import WhatsAppBotPage from "@/pages/WhatsAppBotPage";
+import WhatsAppPage from "@/pages/WhatsAppPage";
 import { Toaster } from "@/components/ui/sonner";
 import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -24,7 +24,7 @@ function App() {
               <Route path="/results/:reportId" element={<ResultsPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/compare" element={<ComparisonPage />} />
-              <Route path="/whatsapp-bot" element={<WhatsAppBotPage />} />
+              <Route path="/whatsapp-bot" element={<WhatsAppPage />} />
             </Routes>
           </BrowserRouter>
           <Toaster />
