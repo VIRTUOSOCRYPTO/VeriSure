@@ -18,9 +18,13 @@ from PIL import Image
 import re
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+from forensics import ForensicAnalyzer, fuse_evidence
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Initialize forensic analyzer
+forensic_analyzer = ForensicAnalyzer()
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -47,7 +51,7 @@ class AnalysisRequest(BaseModel):
     content: str
 
 class OriginVerdict(BaseModel):
-    classification: str  # "Likely AI-Generated", "Likely Original", "Unclear / Mixed Signals"
+    classification: str  # "Likely AI-Generated", "Likely Original", "Hybrid / Manipulated", "Unclear / Mixed Signals", "Inconclusive"
     confidence: str  # "low", "medium", "high"
     indicators: List[str]
 
@@ -149,41 +153,33 @@ async def analyze_with_claude(content: str, content_type: str, image_data: Optio
     
     session_id = str(uuid.uuid4())
     
-    system_message = """You are an advanced forensic analysis system specializing in detecting AI-generated content and scam patterns targeting Indian citizens.
+    system_message = """You are a SECONDARY opinion provider for content analysis. Your role is to supplement forensic evidence, NOT be the final authority.
 
-CRITICAL: Never claim 100% certainty. All assessments are probabilistic.
+CRITICAL RULES:
+1. Never claim 100% certainty
+2. Your opinion is ONE SIGNAL among many
+3. Focus on subjective patterns that technical forensics might miss
+4. Be conservative in your assessments
 
-Your task is to analyze the provided content and respond with a structured JSON assessment.
-
-Provide your analysis in this EXACT JSON format:
+Provide analysis in this EXACT JSON format:
 {
   "origin": {
     "classification": "Likely AI-Generated" | "Likely Original" | "Unclear / Mixed Signals",
     "confidence": "low" | "medium" | "high",
-    "indicators": ["2-4 specific, human-readable indicators in plain English"]
+    "indicators": ["2-3 specific visual/textual indicators"]
   },
-  "ai_signals": ["list of AI generation artifacts if any"],
-  "human_signals": ["list of human authorship indicators if any"],
-  "forensic_notes": ["technical observations in plain English"],
-  "summary": "brief explanation of the classification in 1-2 sentences"
+  "ai_signals": ["subtle AI artifacts or patterns you observe"],
+  "human_signals": ["indicators of human authorship"],
+  "forensic_notes": ["observations about style, consistency, context"],
+  "summary": "brief 1-2 sentence opinion"
 }
 
-Classification Guidelines:
-- "Likely AI-Generated": Strong AI indicators present (patterns, artifacts, excessive consistency)
-- "Likely Original": Lacks AI generation artifacts, shows natural human variation
-- "Unclear / Mixed Signals": Insufficient or conflicting evidence
+Look for SUBJECTIVE indicators:
+- AI: Excessive perfection, unnatural smoothness, generic phrasing, context mismatches
+- Human: Natural imperfections, personal style, contextual awareness, authentic errors
+- Images: Visual coherence, lighting consistency, detail realism
 
-Look for:
-- AI generation artifacts (unnatural patterns, excessive consistency, generic phrasing, uniform textures)
-- Human variation indicators (natural errors, personal style, inconsistencies, context awareness)
-- Manipulation signs (editing, re-encoding, context mismatch)
-- For images: unrealistic textures, lighting anomalies, impossible geometry, generation artifacts
-
-IMPORTANT: 
-- Keep explanations in plain English for non-technical users
-- Provide 2-4 clear bullet points as indicators
-- Always acknowledge limitations
-- Never claim absolute certainty"""
+REMEMBER: Technical forensics (EXIF, metadata, compression) take priority over your opinion."""
     
     try:
         chat = LlmChat(
@@ -306,13 +302,27 @@ async def analyze_content(
             content_bytes = await file.read()
             content_text = file.filename or "uploaded_file"
             
-            # Determine if it's an image
-            if file.content_type and 'image' in file.content_type:
-                analysis_type = "image"
-            elif file.content_type and 'video' in file.content_type:
-                analysis_type = "video"
+            # Determine file type
+            if file.content_type:
+                if 'image' in file.content_type:
+                    analysis_type = "image"
+                elif 'video' in file.content_type:
+                    analysis_type = "video"
+                elif 'audio' in file.content_type:
+                    analysis_type = "audio"
+                else:
+                    analysis_type = "file"
             else:
-                analysis_type = "file"
+                # Fallback: detect by filename extension
+                filename_lower = content_text.lower()
+                if any(ext in filename_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+                    analysis_type = "image"
+                elif any(ext in filename_lower for ext in ['.mp4', '.mov', '.avi', '.mkv']):
+                    analysis_type = "video"
+                elif any(ext in filename_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
+                    analysis_type = "audio"
+                else:
+                    analysis_type = "file"
                 
         elif input_type == "url" and content:
             # Fetch URL content
@@ -335,42 +345,89 @@ async def analyze_content(
         # Compute content hash
         content_hash = compute_content_hash(content_bytes)
         
-        # Perform Claude analysis
+        # STEP 1: FORENSIC ANALYSIS FIRST (primary signal)
+        logger.info(f"Starting forensic analysis for {analysis_type}")
+        forensic_result = {}
+        
         if analysis_type == "image":
-            claude_result = await analyze_with_claude(
-                content_text, 
-                "image", 
-                image_data=content_bytes,
-                mime_type=file.content_type if file else url_content_type if 'url_content_type' in locals() else None
+            forensic_result = forensic_analyzer.analyze_image(content_bytes)
+        elif analysis_type == "video":
+            forensic_result = forensic_analyzer.analyze_video(
+                content_bytes, 
+                filename=file.filename if file else "video.mp4"
+            )
+        elif analysis_type == "audio":
+            forensic_result = forensic_analyzer.analyze_audio(
+                content_bytes,
+                filename=file.filename if file else "audio.mp3"
             )
         else:
-            claude_result = await analyze_with_claude(
-                content_text,
-                "text"
-            )
+            # Text analysis - no forensics, rely more on scam patterns
+            forensic_result = {
+                'media_type': 'text',
+                'forensic_indicators': {
+                    'human_signals': [],
+                    'ai_signals': [],
+                    'manipulation_signals': [],
+                    'inconclusive_signals': ['No technical forensics for plain text']
+                }
+            }
+        
+        logger.info(f"Forensic analysis complete: {len(forensic_result.get('forensic_indicators', {}).get('human_signals', []))} human signals, {len(forensic_result.get('forensic_indicators', {}).get('ai_signals', []))} AI signals")
+        
+        # STEP 2: AI OPINION AS SECONDARY SIGNAL
+        logger.info("Requesting AI opinion (secondary signal)")
+        claude_result = {}
+        try:
+            if analysis_type == "image":
+                claude_result = await analyze_with_claude(
+                    content_text, 
+                    "image", 
+                    image_data=content_bytes,
+                    mime_type=file.content_type if file else url_content_type if 'url_content_type' in locals() else None
+                )
+            elif analysis_type in ["video", "audio"]:
+                # For video/audio, Claude gets limited context
+                claude_result = await analyze_with_claude(
+                    f"Analyzing {analysis_type} file. Provide secondary opinion based on general patterns.",
+                    "text"
+                )
+            else:
+                claude_result = await analyze_with_claude(
+                    content_text,
+                    "text"
+                )
+        except Exception as ai_error:
+            logger.warning(f"AI opinion failed: {str(ai_error)}. Continuing with forensics only.")
+            claude_result = {
+                "origin": {
+                    "classification": "Unclear / Mixed Signals",
+                    "confidence": "low",
+                    "indicators": ["AI opinion unavailable"]
+                },
+                "ai_signals": [],
+                "human_signals": [],
+                "forensic_notes": [],
+                "summary": "AI analysis unavailable"
+            }
+        
+        # STEP 3: FUSE EVIDENCE USING STRICT RULES
+        logger.info("Fusing forensic evidence with AI opinion")
+        final_classification, final_confidence, classification_reason, all_indicators = fuse_evidence(
+            forensic_result, 
+            claude_result
+        )
+        
+        logger.info(f"Final verdict: {final_classification} ({final_confidence} confidence)")
         
         # Detect scam patterns
         scam_patterns, behavioral_flags = detect_scam_patterns(content_text)
         
-        # Build origin verdict
-        origin_classification = claude_result.get("origin", {}).get("classification", "Unclear / Mixed Signals")
-        
-        # Ensure we use the correct classification labels
-        classification_map = {
-            "likely_ai": "Likely AI-Generated",
-            "likely_human": "Likely Original",
-            "hybrid": "Unclear / Mixed Signals",
-            "inconclusive": "Unclear / Mixed Signals"
-        }
-        
-        # Map old format to new format if needed
-        if origin_classification.lower() in classification_map:
-            origin_classification = classification_map[origin_classification.lower()]
-        
+        # Build origin verdict with forensics-based decision
         origin_verdict = OriginVerdict(
-            classification=origin_classification,
-            confidence=claude_result.get("origin", {}).get("confidence", "low"),
-            indicators=claude_result.get("origin", {}).get("indicators", ["Analysis incomplete"])[:4]  # Limit to max 4 indicators
+            classification=final_classification,
+            confidence=final_confidence,
+            indicators=all_indicators[:4] if all_indicators else [classification_reason]
         )
         
         # Determine scam risk level
@@ -386,14 +443,26 @@ async def analyze_content(
             behavioral_flags=behavioral_flags if behavioral_flags else ["No behavioral manipulation detected"]
         )
         
-        # Build evidence
+        # Build evidence with forensic details
+        forensic_indicators = forensic_result.get('forensic_indicators', {})
+        all_forensic_signals = (
+            forensic_indicators.get('human_signals', []) +
+            forensic_indicators.get('ai_signals', []) +
+            forensic_indicators.get('manipulation_signals', [])
+        )
+        
         evidence = Evidence(
-            signals_detected=claude_result.get("ai_signals", []) + claude_result.get("human_signals", []),
-            forensic_notes=claude_result.get("forensic_notes", []),
+            signals_detected=all_forensic_signals[:10] if all_forensic_signals else ["No technical signals detected"],
+            forensic_notes=[
+                classification_reason,
+                f"Forensic analysis: {forensic_result.get('media_type', 'unknown')} type",
+                f"Evidence quality: {final_confidence}"
+            ] + claude_result.get("forensic_notes", [])[:2],
             limitations=[
-                "Analysis is probabilistic, not definitive",
-                "Advanced AI and human-created content may be indistinguishable",
-                "Results should be used as one factor in decision-making"
+                "Analysis combines technical forensics with AI opinion",
+                "Technical forensics takes priority over AI assessment",
+                "Results are probabilistic, never 100% certain",
+                "Advanced manipulation techniques may evade detection"
             ]
         )
         
@@ -431,7 +500,18 @@ async def analyze_content(
             severity=severity
         )
         
-        # Create final report
+        # Create final report with forensics-based classification
+        analysis_summary = f"{classification_reason}. "
+        
+        # Add forensic details to summary
+        if forensic_result.get('media_type') != 'text':
+            analysis_summary += f"Forensic analysis of {forensic_result.get('media_type')} completed. "
+        
+        # Add AI opinion note
+        ai_opinion = claude_result.get("summary", "")
+        if ai_opinion and "unavailable" not in ai_opinion.lower():
+            analysis_summary += f"AI opinion (secondary): {ai_opinion}"
+        
         report = AnalysisReport(
             timestamp=datetime.now(timezone.utc).isoformat(),
             content_hash=content_hash,
@@ -439,7 +519,7 @@ async def analyze_content(
             scam_assessment=scam_assessment,
             evidence=evidence,
             recommendations=recommendations,
-            analysis_summary=claude_result.get("summary", "Analysis completed")
+            analysis_summary=analysis_summary
         )
         
         # Store report in database
