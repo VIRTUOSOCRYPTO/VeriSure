@@ -16,6 +16,7 @@ import json
 from io import BytesIO
 from PIL import Image
 import re
+import pytesseract
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 from forensics import ForensicAnalyzer, fuse_evidence
@@ -87,13 +88,15 @@ INDIA_SCAM_PATTERNS = [
     (r"\b(arrest|police|cyber crime|CBI|FIR|legal action|court notice|warrant)\b", "Fake police/law enforcement threat"),
     (r"\b(your son|your daughter|your child).*(arrest|accident|hospital|trouble)\b", "Family emergency scam"),
     (r"\b(RBI|Reserve Bank|bank account|frozen|suspend|block|KYC|inactive)\b", "Banking/RBI fraud"),
-    (r"\b(urgent|immediate|last chance|within 24 hours|final notice|act now)\b", "Urgency manipulation"),
+    (r"\b(urgent|immediate|last chance|within \d+ hours?|final notice|act now)\b", "Urgency manipulation"),
     (r"\b(don't tell|keep secret|confidential|don't share)\b", "Secrecy demand"),
     (r"\b(verify|update|confirm|validate).*(OTP|password|PIN|CVV|card|account)\b", "Credential harvesting"),
     (r"\b(lottery|prize|won|winner|claim|reward|congratulations)\b", "Fake prize scam"),
     (r"\b(customs|parcel|delivery|courier|package|shipment)\b", "Fake delivery scam"),
     (r"\b(tax|refund|GST|income tax|return)\b", "Tax refund scam"),
-    (r"\b(click here|link|download|install|update now)\b", "Phishing link"),
+    (r"\b(click here|link|download|install|update now|click below)\b", "Phishing link"),
+    (r"\b(fine|fined|penalty|charge).*(pay|payment|amount|\$|₹)\b", "Fake fine/penalty scam"),
+    (r"\b(amazon|flipkart|myntra|paytm|swiggy|zomato).*(order|delivery|account|suspend|block|fine|return)\b", "Fake e-commerce impersonation"),
 ]
 
 # Analysis helper functions
@@ -145,6 +148,23 @@ def compute_content_hash(content: bytes) -> str:
     """Compute SHA-256 hash of content"""
     return hashlib.sha256(content).hexdigest()
 
+def extract_text_from_image(image_bytes: bytes) -> str:
+    """Extract text from image using OCR"""
+    try:
+        image = Image.open(BytesIO(image_bytes))
+        # Convert to RGB if needed
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Extract text using pytesseract
+        text = pytesseract.image_to_string(image)
+        logger.info(f"OCR extracted text (length: {len(text)}): {text[:200]}...")
+        return text.strip()
+    except Exception as e:
+        logger.error(f"OCR extraction failed: {str(e)}")
+        return ""
+
+
 async def analyze_with_claude(content: str, content_type: str, image_data: Optional[bytes] = None, mime_type: Optional[str] = None) -> Dict[str, Any]:
     """Analyze content using Claude Sonnet 4.5"""
     api_key = os.environ.get('EMERGENT_LLM_KEY', '')
@@ -178,6 +198,7 @@ Look for SUBJECTIVE indicators:
 - AI: Excessive perfection, unnatural smoothness, generic phrasing, context mismatches
 - Human: Natural imperfections, personal style, contextual awareness, authentic errors
 - Images: Visual coherence, lighting consistency, detail realism
+- **DEEPFAKE VIDEOS**: Unnatural facial movements, lip-sync issues, lighting inconsistencies on face, blurry face edges, artifacts around mouth/eyes, unnatural blinking, static background with animated face
 
 REMEMBER: Technical forensics (EXIF, metadata, compression) take priority over your opinion."""
     
@@ -306,6 +327,11 @@ async def analyze_content(
             if file.content_type:
                 if 'image' in file.content_type:
                     analysis_type = "image"
+                    # Extract text from image using OCR for scam detection
+                    extracted_text = extract_text_from_image(content_bytes)
+                    if extracted_text:
+                        content_text = extracted_text
+                        logger.info(f"Extracted {len(extracted_text)} characters from image for scam analysis")
                 elif 'video' in file.content_type:
                     analysis_type = "video"
                 elif 'audio' in file.content_type:
@@ -317,6 +343,11 @@ async def analyze_content(
                 filename_lower = content_text.lower()
                 if any(ext in filename_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
                     analysis_type = "image"
+                    # Extract text from image using OCR for scam detection
+                    extracted_text = extract_text_from_image(content_bytes)
+                    if extracted_text:
+                        content_text = extracted_text
+                        logger.info(f"Extracted {len(extracted_text)} characters from image for scam analysis")
                 elif any(ext in filename_lower for ext in ['.mp4', '.mov', '.avi', '.mkv']):
                     analysis_type = "video"
                 elif any(ext in filename_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
@@ -330,6 +361,13 @@ async def analyze_content(
             if url_type == "image":
                 content_bytes = url_data
                 analysis_type = "image"
+                # Extract text from image using OCR for scam detection
+                extracted_text = extract_text_from_image(url_data)
+                if extracted_text:
+                    content_text = extracted_text
+                    logger.info(f"Extracted {len(extracted_text)} characters from URL image for scam analysis")
+                else:
+                    content_text = content  # fallback to URL
             else:
                 content_bytes = url_data
                 content_text = url_data.decode('utf-8', errors='ignore')
@@ -386,10 +424,33 @@ async def analyze_content(
                     image_data=content_bytes,
                     mime_type=file.content_type if file else url_content_type if 'url_content_type' in locals() else None
                 )
-            elif analysis_type in ["video", "audio"]:
-                # For video/audio, Claude gets limited context
+            elif analysis_type == "video":
+                # For video, send key frames to Claude for deepfake detection
+                key_frames = forensic_result.get('key_frames', [])
+                if key_frames and len(key_frames) > 0:
+                    # Use the middle frame for analysis
+                    middle_frame = key_frames[len(key_frames) // 2] if key_frames else None
+                    if middle_frame:
+                        claude_result = await analyze_with_claude(
+                            "Analyze this video frame for deepfake indicators. Look for: unnatural facial movements, lip-sync issues, lighting inconsistencies on face, blurry face edges, artifacts around mouth/eyes, unnatural blinking, static background with animated face.",
+                            "image",
+                            image_data=middle_frame,
+                            mime_type="image/jpeg"
+                        )
+                    else:
+                        claude_result = await analyze_with_claude(
+                            "Analyzing video file. Provide secondary opinion based on general patterns.",
+                            "text"
+                        )
+                else:
+                    claude_result = await analyze_with_claude(
+                        "Analyzing video file. Provide secondary opinion based on general patterns.",
+                        "text"
+                    )
+            elif analysis_type == "audio":
+                # For audio, Claude gets limited context
                 claude_result = await analyze_with_claude(
-                    f"Analyzing {analysis_type} file. Provide secondary opinion based on general patterns.",
+                    f"Analyzing audio file. Provide secondary opinion based on general patterns.",
                     "text"
                 )
             else:
@@ -432,7 +493,12 @@ async def analyze_content(
         
         # Determine scam risk level
         risk_level = "low"
-        if len(scam_patterns) >= 3 or any("OTP" in p or "police" in p.lower() for p in scam_patterns):
+        # HIGH RISK indicators
+        high_risk_keywords = ["OTP", "police", "fine", "fined", "penalty", "arrest", "block", "suspend", "urgent", "immediate"]
+        if len(scam_patterns) >= 3 or any(keyword.lower() in p.lower() for keyword in high_risk_keywords for p in scam_patterns):
+            risk_level = "high"
+        # Also check for combination of urgency + financial threat
+        elif len(scam_patterns) >= 2 and any("urgency" in p.lower() or "phishing" in p.lower() for p in scam_patterns):
             risk_level = "high"
         elif len(scam_patterns) >= 1:
             risk_level = "medium"
