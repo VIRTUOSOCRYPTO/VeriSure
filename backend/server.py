@@ -10,7 +10,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 import uuid
 from datetime import datetime, timezone
 import hashlib
@@ -27,6 +27,8 @@ from forensics import ForensicAnalyzer, fuse_evidence
 from cache_manager import CacheManager
 from pdf_generator import PDFReportGenerator
 from auth import get_api_key, get_optional_api_key, DEFAULT_API_KEY
+from celery_tasks import celery_app, process_video_analysis, process_audio_analysis
+from celery.result import AsyncResult
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -50,9 +52,15 @@ cache_manager = CacheManager(
 # Initialize PDF generator
 pdf_generator = PDFReportGenerator()
 
-# MongoDB connection
+# MongoDB connection with connection pooling (Phase 3 optimization)
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+client = AsyncIOMotorClient(
+    mongo_url,
+    maxPoolSize=50,  # Max connections in pool
+    minPoolSize=10,  # Min connections to maintain
+    maxIdleTimeMS=45000,  # Close idle connections after 45s
+    serverSelectionTimeoutMS=5000  # Connection timeout
+)
 db = client[os.environ['DB_NAME']]
 
 # Rate limiter
@@ -111,6 +119,18 @@ class AnalysisReport(BaseModel):
     evidence: Evidence
     recommendations: Recommendation
     analysis_summary: str
+
+class AsyncJobResponse(BaseModel):
+    job_id: str
+    status: str  # "pending", "processing", "completed", "failed"
+    message: str
+
+class JobStatusResponse(BaseModel):
+    job_id: str
+    status: str  # "PENDING", "STARTED", "SUCCESS", "FAILURE"
+    progress: Optional[int] = None
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
 
 
 # India-specific scam patterns - ENHANCED with more patterns
@@ -487,7 +507,7 @@ async def root(request: Request):
         ]
     }
 
-@api_router.post("/analyze", response_model=AnalysisReport)
+@api_router.post("/analyze")
 @limiter.limit("20/minute")
 async def analyze_content(
     request: Request,
@@ -495,8 +515,9 @@ async def analyze_content(
     content: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     api_key_info: Optional[Dict] = Depends(get_optional_api_key)
-):
-    """Main analysis endpoint - handles text, URL, and file uploads"""
+) -> Union[AnalysisReport, AsyncJobResponse]:
+    """Main analysis endpoint - handles text, URL, and file uploads
+    Returns AnalysisReport for text/images, AsyncJobResponse for video/audio"""
     
     content_bytes = None
     content_text = ""
@@ -575,7 +596,37 @@ async def analyze_content(
             # Return cached report directly
             return AnalysisReport(**cached_report)
         
-        # STEP 1: FORENSIC ANALYSIS FIRST (primary signal)
+        # PHASE 3: ASYNC PROCESSING FOR VIDEO/AUDIO (heavy operations)
+        # Route video/audio to Celery workers for async processing
+        if analysis_type == "video":
+            logger.info(f"🎬 Routing video analysis to Celery worker (async)")
+            task = process_video_analysis.delay(
+                content_bytes, 
+                filename=file.filename if file else "video.mp4"
+            )
+            
+            # Return job ID for polling
+            return AsyncJobResponse(
+                job_id=task.id,
+                status="processing",
+                message=f"Video analysis started. Use /api/job/{task.id} to check status."
+            )
+        
+        elif analysis_type == "audio":
+            logger.info(f"🎵 Routing audio analysis to Celery worker (async)")
+            task = process_audio_analysis.delay(
+                content_bytes,
+                filename=file.filename if file else "audio.mp3"
+            )
+            
+            # Return job ID for polling
+            return AsyncJobResponse(
+                job_id=task.id,
+                status="processing",
+                message=f"Audio analysis started. Use /api/job/{task.id} to check status."
+            )
+        
+        # STEP 1: FORENSIC ANALYSIS FIRST (primary signal) - For images and text
         logger.info(f"Starting forensic analysis for {analysis_type}")
         forensic_result = {}
         
@@ -1005,12 +1056,268 @@ async def get_analytics_summary(request: Request):
 @api_router.get("/health")
 async def health_check():
     """Health check endpoint"""
+    celery_status = "unknown"
+    try:
+        # Check if Celery is responding
+        inspect = celery_app.control.inspect()
+        stats = inspect.stats()
+        celery_status = "connected" if stats else "disconnected"
+    except Exception:
+        celery_status = "disconnected"
+    
     return {
         "status": "healthy",
         "mongodb": "connected" if client else "disconnected",
         "cache": cache_manager.get_cache_stats().get("status", "unknown"),
-        "version": "2.0.0"
+        "celery": celery_status,
+        "version": "2.1.0"
     }
+
+@api_router.get("/job/{job_id}")
+@limiter.limit("60/minute")
+async def get_job_status(request: Request, job_id: str):
+    """
+    Get status of an async job (video/audio processing)
+    Phase 3 - Async Queue Implementation
+    """
+    try:
+        task_result = AsyncResult(job_id, app=celery_app)
+        
+        response = JobStatusResponse(
+            job_id=job_id,
+            status=task_result.status,
+            progress=None,
+            result=None,
+            error=None
+        )
+        
+        if task_result.ready():
+            if task_result.successful():
+                response.result = task_result.result
+                response.progress = 100
+            else:
+                response.error = str(task_result.info)
+        else:
+            # Task is still processing
+            if hasattr(task_result.info, 'get'):
+                response.progress = task_result.info.get('progress', 0)
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Job status error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get job status: {str(e)}")
+
+@api_router.post("/analyze/batch")
+@limiter.limit("10/minute")
+async def analyze_batch(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    api_key_info: Optional[Dict] = Depends(get_optional_api_key)
+):
+    """
+    Batch analysis endpoint - analyze multiple files at once
+    Phase 3 - Batch Processing
+    Max 10 files per batch
+    """
+    try:
+        # Validate batch size
+        if len(files) > 10:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Maximum 10 files allowed per batch. You uploaded {len(files)} files."
+            )
+        
+        if len(files) == 0:
+            raise HTTPException(status_code=400, detail="No files provided")
+        
+        logger.info(f"📦 Starting batch analysis for {len(files)} files")
+        
+        batch_results = []
+        
+        for idx, file in enumerate(files):
+            try:
+                # Read file content
+                content_bytes = await file.read()
+                filename = file.filename or f"file_{idx}"
+                
+                # Determine file type
+                analysis_type = "file"
+                if file.content_type:
+                    if 'image' in file.content_type:
+                        analysis_type = "image"
+                    elif 'video' in file.content_type:
+                        analysis_type = "video"
+                    elif 'audio' in file.content_type:
+                        analysis_type = "audio"
+                    elif 'text' in file.content_type:
+                        analysis_type = "text"
+                
+                # Compute content hash
+                content_hash = compute_content_hash(content_bytes)
+                
+                # Check cache first
+                cached_report = cache_manager.get_cached_analysis(content_hash)
+                if cached_report:
+                    logger.info(f"✅ Cache HIT for batch file {idx+1}/{len(files)}: {filename}")
+                    batch_results.append({
+                        "file_index": idx,
+                        "filename": filename,
+                        "status": "completed",
+                        "cached": True,
+                        "report": cached_report
+                    })
+                    continue
+                
+                # For video/audio, route to async processing
+                if analysis_type == "video":
+                    task = process_video_analysis.delay(content_bytes, filename)
+                    batch_results.append({
+                        "file_index": idx,
+                        "filename": filename,
+                        "status": "processing",
+                        "job_id": task.id,
+                        "analysis_type": "video"
+                    })
+                    logger.info(f"🎬 Batch file {idx+1}/{len(files)} (video) queued: {filename}")
+                    
+                elif analysis_type == "audio":
+                    task = process_audio_analysis.delay(content_bytes, filename)
+                    batch_results.append({
+                        "file_index": idx,
+                        "filename": filename,
+                        "status": "processing",
+                        "job_id": task.id,
+                        "analysis_type": "audio"
+                    })
+                    logger.info(f"🎵 Batch file {idx+1}/{len(files)} (audio) queued: {filename}")
+                
+                else:
+                    # For images and text, process immediately (fast)
+                    # Extract text from image if needed
+                    content_text = filename
+                    if analysis_type == "image":
+                        extracted_text = extract_text_from_image(content_bytes)
+                        if extracted_text:
+                            content_text = extracted_text
+                    elif analysis_type == "text":
+                        content_text = content_bytes.decode('utf-8', errors='ignore')
+                    
+                    # Quick forensic analysis for images
+                    forensic_result = {}
+                    if analysis_type == "image":
+                        forensic_result = forensic_analyzer.analyze_image(content_bytes)
+                    else:
+                        forensic_result = {
+                            'media_type': 'text',
+                            'forensic_indicators': {
+                                'human_signals': [],
+                                'ai_signals': [],
+                                'manipulation_signals': [],
+                                'inconclusive_signals': ['No technical forensics for plain text']
+                            }
+                        }
+                    
+                    # AI analysis (skip for speed in batch mode)
+                    claude_result = {
+                        "origin": {
+                            "classification": "Unclear / Mixed Signals",
+                            "confidence": "low",
+                            "indicators": ["Batch mode - AI opinion skipped for speed"]
+                        },
+                        "ai_signals": [],
+                        "human_signals": [],
+                        "forensic_notes": [],
+                        "summary": "Quick batch analysis"
+                    }
+                    
+                    # Fuse evidence
+                    final_classification, final_confidence, classification_reason, all_indicators = fuse_evidence(
+                        forensic_result, 
+                        claude_result
+                    )
+                    
+                    # Detect scam patterns
+                    scam_patterns, behavioral_flags = detect_scam_patterns(content_text)
+                    
+                    # Determine risk level
+                    risk_level = "low"
+                    if len(scam_patterns) >= 3:
+                        risk_level = "high"
+                    elif len(scam_patterns) >= 1:
+                        risk_level = "medium"
+                    
+                    # Build report
+                    report = {
+                        "report_id": str(uuid.uuid4()),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "content_hash": content_hash,
+                        "origin_verdict": {
+                            "classification": final_classification,
+                            "confidence": final_confidence,
+                            "indicators": all_indicators[:6] if all_indicators else [classification_reason]
+                        },
+                        "scam_assessment": {
+                            "risk_level": risk_level,
+                            "scam_patterns": scam_patterns if scam_patterns else ["No known scam patterns detected"],
+                            "behavioral_flags": behavioral_flags if behavioral_flags else ["No behavioral manipulation detected"]
+                        },
+                        "evidence": {
+                            "signals_detected": forensic_result.get('forensic_indicators', {}).get('human_signals', [])[:5],
+                            "forensic_notes": [classification_reason, "Batch mode processing"],
+                            "limitations": ["Batch mode - AI opinion skipped for speed"]
+                        },
+                        "recommendations": {
+                            "actions": ["Quick batch analysis completed"],
+                            "severity": "info" if risk_level == "low" else ("warning" if risk_level == "medium" else "critical")
+                        },
+                        "analysis_summary": f"{classification_reason}. Batch mode."
+                    }
+                    
+                    # Cache the report
+                    cache_manager.cache_analysis(content_hash, report)
+                    
+                    # Store in database
+                    await db.analysis_reports.insert_one(report.copy())
+                    
+                    batch_results.append({
+                        "file_index": idx,
+                        "filename": filename,
+                        "status": "completed",
+                        "cached": False,
+                        "report": report
+                    })
+                    
+                    logger.info(f"✅ Batch file {idx+1}/{len(files)} completed: {filename}")
+                    
+            except Exception as file_error:
+                logger.error(f"❌ Batch file {idx+1} failed: {str(file_error)}")
+                batch_results.append({
+                    "file_index": idx,
+                    "filename": file.filename if file else f"file_{idx}",
+                    "status": "failed",
+                    "error": str(file_error)
+                })
+        
+        logger.info(f"📦 Batch analysis complete: {len(batch_results)} results")
+        
+        return {
+            "batch_id": str(uuid.uuid4()),
+            "total_files": len(files),
+            "results": batch_results,
+            "summary": {
+                "completed": len([r for r in batch_results if r.get("status") == "completed"]),
+                "processing": len([r for r in batch_results if r.get("status") == "processing"]),
+                "failed": len([r for r in batch_results if r.get("status") == "failed"]),
+                "cached": len([r for r in batch_results if r.get("cached") == True])
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Batch analysis error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Batch analysis failed: {str(e)}")
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -1022,6 +1329,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_db_optimization():
+    """
+    Database optimization on startup
+    Phase 3 - Query Optimization & Indexing
+    """
+    logger.info("🚀 Starting database optimization...")
+    
+    try:
+        # Create indexes for faster queries
+        await db.analysis_reports.create_index("report_id", unique=True)
+        await db.analysis_reports.create_index("timestamp")
+        await db.analysis_reports.create_index("content_hash")
+        await db.analysis_reports.create_index("scam_assessment.risk_level")
+        await db.analysis_reports.create_index([("timestamp", -1)])  # Descending for recent queries
+        
+        # Compound index for history queries with filters
+        await db.analysis_reports.create_index([
+            ("scam_assessment.risk_level", 1),
+            ("timestamp", -1)
+        ])
+        
+        logger.info("✅ Database indexes created successfully")
+        logger.info("✅ Connection pool configured (10-50 connections)")
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Index creation warning (may already exist): {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
