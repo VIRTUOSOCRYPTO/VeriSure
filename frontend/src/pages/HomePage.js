@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Shield, Zap, Eye, Lock, AlertTriangle, CheckCircle, Upload } from "lucide-react";
+import { Shield, Zap, Eye, Lock, AlertTriangle, CheckCircle, Upload, Layers } from "lucide-react";
 import FontSizeControl from "@/components/FontSizeControl";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/LanguageContext";
@@ -19,6 +19,13 @@ const HomePage = () => {
               <h1 className="font-mono font-bold text-2xl text-slate-900" data-testid="app-title">{t('appTitle')}</h1>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/batch')}
+                className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                data-testid="batch-btn"
+              >
+                Batch
+              </button>
               <button
                 onClick={() => navigate('/history')}
                 className="bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
@@ -66,6 +73,14 @@ const HomePage = () => {
                 >
                   <Upload className="w-5 h-5" />
                   {t('getStarted')}
+                </button>
+                <button
+                  onClick={() => navigate('/batch')}
+                  className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-8 py-4 font-mono text-base uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[56px]"
+                  data-testid="batch-analysis-btn"
+                >
+                  <Layers className="w-5 h-5" />
+                  Batch Analysis
                 </button>
                 <button
                   onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
