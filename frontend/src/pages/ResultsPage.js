@@ -174,8 +174,9 @@ const ResultsPage = () => {
                 {t('analysisReport')}
               </div>
               <h2 className="font-mono font-bold text-4xl tracking-tight text-slate-900" data-testid="results-title">
-                {t('forensicComplete')}
+                {t('threatAnalysisComplete')}
               </h2>
+              <p className="font-sans text-slate-600 mt-2">{t('threatAnalysisSubtitle')}</p>
             </div>
             <VoiceOutput 
               text={`${t('scamRisk')}: ${t(report?.scam_assessment.risk_level === 'high' ? 'highRiskLabel' : report?.scam_assessment.risk_level === 'medium' ? 'mediumRiskLabel' : 'lowRiskLabel')}. ${report?.analysis_summary}`} 
@@ -184,71 +185,95 @@ const ResultsPage = () => {
 
           {/* Bento Grid Layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Origin Verdict - Span 2 columns on desktop */}
-            <div className="md:col-span-2 bg-white border border-slate-200 p-6 relative overflow-hidden" data-testid="origin-verdict-card">
-              <div className="scanline"></div>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">Origin Classification</div>
-                  <h3 className="font-mono font-semibold text-2xl text-slate-900">
-                    {formatClassification(report.origin_verdict.classification)}
-                  </h3>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-mono uppercase border ${getOriginColor(report.origin_verdict.classification)}`}>
-                  {report.origin_verdict.confidence} confidence
-                </span>
-              </div>
-              
-              <div className="space-y-3 mt-6">
-                <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">Indicators</div>
-                {report.origin_verdict.indicators.map((indicator, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <ChevronRight className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                    <span className="font-sans text-sm text-slate-700">{indicator}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Scam Risk Assessment - Enhanced with larger visuals */}
-            <div className={`border-4 p-8 relative overflow-hidden ${
+            {/* Scam Risk Assessment - MAIN FOCUS - Span 2 columns */}
+            <div className={`md:col-span-2 border-4 p-8 relative overflow-hidden ${
               report.scam_assessment.risk_level === 'high' ? 'bg-rose-50 border-rose-500' :
               report.scam_assessment.risk_level === 'medium' ? 'bg-amber-50 border-amber-400' :
               'bg-emerald-50 border-emerald-400'
             }`} data-testid="scam-risk-card">
               <div className="scanline"></div>
-              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">Scam Risk Level</div>
-              <div className="flex flex-col items-center gap-4 mb-6">
-                {report.scam_assessment.risk_level === 'high' && (
-                  <>
-                    <AlertTriangle className="w-20 h-20 text-rose-600" />
-                    <span className="px-6 py-3 rounded-full text-lg font-mono font-bold uppercase border-2 bg-rose-100 text-rose-800 border-rose-600">
-                      HIGH RISK
-                    </span>
-                  </>
+              <div className="flex items-center justify-between mb-6">
+                <div className="font-mono text-sm uppercase tracking-widest text-slate-700 mb-3">
+                  🚨 {t('threatAssessment')}
+                </div>
+                <div className="flex flex-col items-center gap-3">
+                  {report.scam_assessment.risk_level === 'high' && (
+                    <>
+                      <AlertTriangle className="w-16 h-16 text-rose-600 animate-pulse" />
+                      <span className="px-5 py-2 rounded-full text-lg font-mono font-bold uppercase border-2 bg-rose-100 text-rose-800 border-rose-600">
+                        {t('highRiskLabel')}
+                      </span>
+                    </>
+                  )}
+                  {report.scam_assessment.risk_level === 'medium' && (
+                    <>
+                      <Info className="w-16 h-16 text-amber-600" />
+                      <span className="px-5 py-2 rounded-full text-lg font-mono font-bold uppercase border-2 bg-amber-100 text-amber-800 border-amber-600">
+                        {t('mediumRiskLabel')}
+                      </span>
+                    </>
+                  )}
+                  {report.scam_assessment.risk_level === 'low' && (
+                    <>
+                      <CheckCircle className="w-16 h-16 text-emerald-600" />
+                      <span className="px-5 py-2 rounded-full text-lg font-mono font-bold uppercase border-2 bg-emerald-100 text-emerald-800 border-emerald-600">
+                        {t('lowRiskLabel')}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="space-y-4 mt-6">
+                <div>
+                  <div className="font-mono text-xs uppercase tracking-widest text-slate-600 mb-3">🎯 {t('scamPatternsDetected')}</div>
+                  <div className="space-y-2">
+                    {report.scam_assessment.scam_patterns.map((pattern, idx) => (
+                      <div key={idx} className="flex items-start gap-3 bg-white/60 p-3 rounded border border-slate-200">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 mt-0.5 flex-shrink-0" />
+                        <span className="font-sans text-sm font-medium text-slate-800">{pattern}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {report.scam_assessment.behavioral_flags.length > 0 && 
+                 report.scam_assessment.behavioral_flags[0] !== "No behavioral manipulation detected" && (
+                  <div className="mt-4">
+                    <div className="font-mono text-xs uppercase tracking-widest text-slate-600 mb-3">⚠️ {t('manipulationTactics')}</div>
+                    <div className="space-y-2">
+                      {report.scam_assessment.behavioral_flags.map((flag, idx) => (
+                        <div key={idx} className="flex items-start gap-3 bg-white/60 p-3 rounded border border-slate-200">
+                          <div className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">!</div>
+                          <span className="font-sans text-sm text-slate-800">{flag}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
-                {report.scam_assessment.risk_level === 'medium' && (
-                  <>
-                    <Info className="w-20 h-20 text-amber-600" />
-                    <span className="px-6 py-3 rounded-full text-lg font-mono font-bold uppercase border-2 bg-amber-100 text-amber-800 border-amber-600">
-                      MEDIUM RISK
-                    </span>
-                  </>
-                )}
-                {report.scam_assessment.risk_level === 'low' && (
-                  <>
-                    <CheckCircle className="w-20 h-20 text-emerald-600" />
-                    <span className="px-6 py-3 rounded-full text-lg font-mono font-bold uppercase border-2 bg-emerald-100 text-emerald-800 border-emerald-600">
-                      LOW RISK
-                    </span>
-                  </>
-                )}
+              </div>
+            </div>
+
+            {/* Origin Verdict - Secondary (1 column) */}
+            <div className="bg-white border border-slate-200 p-6 relative overflow-hidden" data-testid="origin-verdict-card">
+              <div className="scanline"></div>
+              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">{t('aiOriginAnalysis')}</div>
+              <div className="mb-4">
+                <h3 className="font-mono font-semibold text-lg text-slate-900 mb-2">
+                  {formatClassification(report.origin_verdict.classification)}
+                </h3>
+                <span className={`px-3 py-1 rounded-full text-xs font-mono uppercase border ${getOriginColor(report.origin_verdict.classification)}`}>
+                  {report.origin_verdict.confidence} {t('confidence')}
+                </span>
               </div>
               
               <div className="space-y-2 mt-4">
-                <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">Patterns Detected</div>
-                {report.scam_assessment.scam_patterns.slice(0, 3).map((pattern, idx) => (
-                  <p key={idx} className="font-sans text-sm text-slate-700 leading-relaxed">• {pattern}</p>
+                <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">{t('keyIndicators')}</div>
+                {report.origin_verdict.indicators.map((indicator, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <div className="w-1 h-1 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
+                    <span className="font-sans text-xs text-slate-600">{indicator}</span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -256,11 +281,11 @@ const ResultsPage = () => {
             {/* Evidence Summary */}
             <div className="md:col-span-2 bg-white border border-slate-200 p-6 relative overflow-hidden" data-testid="evidence-card">
               <div className="scanline"></div>
-              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">Evidence Summary</div>
+              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">{t('evidenceSummary')}</div>
               
               <div className="space-y-4">
                 <div>
-                  <div className="font-mono text-xs text-slate-500 mb-2">Signals Detected</div>
+                  <div className="font-mono text-xs text-slate-500 mb-2">{t('signalsDetectedLabel')}</div>
                   <div className="space-y-2">
                     {report.evidence.signals_detected.slice(0, 4).map((signal, idx) => (
                       <div key={idx} className="flex items-start gap-2">
@@ -272,7 +297,7 @@ const ResultsPage = () => {
                 </div>
                 
                 <div>
-                  <div className="font-mono text-xs text-slate-500 mb-2">Forensic Notes</div>
+                  <div className="font-mono text-xs text-slate-500 mb-2">{t('forensicNotesLabel')}</div>
                   <div className="space-y-2">
                     {report.evidence.forensic_notes.slice(0, 3).map((note, idx) => (
                       <p key={idx} className="font-sans text-sm text-slate-600">• {note}</p>
@@ -285,13 +310,13 @@ const ResultsPage = () => {
             {/* Report Metadata */}
             <div className="bg-white border border-slate-200 p-6 relative overflow-hidden" data-testid="metadata-card">
               <div className="scanline"></div>
-              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">Report Details</div>
+              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">{t('reportDetailsLabel')}</div>
               
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <FileText className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   <div>
-                    <div className="font-mono text-xs text-slate-500">Report ID</div>
+                    <div className="font-mono text-xs text-slate-500">{t('reportIdLabel')}</div>
                     <div className="font-mono text-xs text-slate-700 break-all">{report.report_id}</div>
                   </div>
                 </div>
@@ -299,7 +324,7 @@ const ResultsPage = () => {
                 <div className="flex items-start gap-3">
                   <Clock className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   <div>
-                    <div className="font-mono text-xs text-slate-500">Timestamp</div>
+                    <div className="font-mono text-xs text-slate-500">{t('timestampLabel')}</div>
                     <div className="font-mono text-xs text-slate-700">{formatTimestamp(report.timestamp)}</div>
                   </div>
                 </div>
@@ -307,7 +332,7 @@ const ResultsPage = () => {
                 <div className="flex items-start gap-3">
                   <Hash className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   <div>
-                    <div className="font-mono text-xs text-slate-500">Content Hash (SHA-256)</div>
+                    <div className="font-mono text-xs text-slate-500">{t('contentHashLabel')}</div>
                     <div className="font-mono text-xs text-slate-700 break-all">{report.content_hash.slice(0, 16)}...</div>
                   </div>
                 </div>
@@ -321,7 +346,7 @@ const ResultsPage = () => {
                 {report.recommendations.severity === 'critical' && <AlertTriangle className="w-6 h-6 text-rose-600" />}
                 {report.recommendations.severity === 'warning' && <Info className="w-6 h-6 text-amber-600" />}
                 {report.recommendations.severity === 'info' && <CheckCircle className="w-6 h-6 text-slate-600" />}
-                <div className="font-mono text-xs uppercase tracking-widest text-slate-500">Recommended Actions</div>
+                <div className="font-mono text-xs uppercase tracking-widest text-slate-500">{t('recommendedActionsLabel')}</div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -338,11 +363,11 @@ const ResultsPage = () => {
 
             {/* Analysis Summary */}
             <div className="md:col-span-3 bg-slate-100 border border-slate-200 p-6" data-testid="summary-card">
-              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">Analysis Summary</div>
+              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">{t('analysisSummaryLabel')}</div>
               <p className="font-sans text-base text-slate-700 leading-relaxed">{report.analysis_summary}</p>
               
               <div className="mt-6 pt-6 border-t border-slate-300">
-                <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">Limitations</div>
+                <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">{t('limitationsLabel')}</div>
                 <div className="space-y-1">
                   {report.evidence.limitations.map((limitation, idx) => (
                     <p key={idx} className="font-sans text-xs text-slate-600">• {limitation}</p>
@@ -351,22 +376,6 @@ const ResultsPage = () => {
               </div>
             </div>
           </div>
-
-          {/* Behavioral Flags (if any) */}
-          {report.scam_assessment.behavioral_flags.length > 0 && 
-           report.scam_assessment.behavioral_flags[0] !== "No behavioral manipulation detected" && (
-            <div className="mt-6 bg-amber-50 border border-amber-200 p-6" data-testid="behavioral-flags">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-5 h-5 text-amber-700" />
-                <div className="font-mono text-xs uppercase tracking-widest text-amber-700">Behavioral Manipulation Detected</div>
-              </div>
-              <div className="space-y-2">
-                {report.scam_assessment.behavioral_flags.map((flag, idx) => (
-                  <p key={idx} className="font-sans text-sm text-amber-800">• {flag}</p>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </section>
     </div>
