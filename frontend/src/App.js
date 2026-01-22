@@ -5,6 +5,7 @@ import AnalysisPage from "@/pages/AnalysisPage";
 import BatchAnalysisPage from "@/pages/BatchAnalysisPage";
 import ResultsPage from "@/pages/ResultsPage";
 import HistoryPage from "@/pages/HistoryPage";
+import ComparisonPage from "@/pages/ComparisonPage";
 import { Toaster } from "@/components/ui/sonner";
 import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -21,6 +22,7 @@ function App() {
               <Route path="/batch" element={<BatchAnalysisPage />} />
               <Route path="/results/:reportId" element={<ResultsPage />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/compare" element={<ComparisonPage />} />
             </Routes>
           </BrowserRouter>
           <Toaster />
