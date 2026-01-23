@@ -30,6 +30,10 @@ from auth import get_api_key, get_optional_api_key, DEFAULT_API_KEY
 from celery_tasks import celery_app, process_video_analysis, process_audio_analysis
 from celery.result import AsyncResult
 
+# Phase 4: Intelligence imports
+from scam_intelligence import ScamIntelligence
+from threat_intelligence import ThreatIntelligence
+
 # Phase 6: Security & Compliance imports
 from models import (
     UserRegistration, UserLogin, TokenResponse, RefreshTokenRequest,
@@ -69,6 +73,10 @@ jwt_manager = None  # Initialized after DB connection
 audit_logger = None  # Initialized after DB connection
 gdpr_manager = None  # Initialized after DB connection
 
+# Phase 4: Initialize intelligence systems
+scam_intelligence = None  # Initialized after DB connection
+threat_intelligence = None  # Initialized after DB connection
+
 # MongoDB connection with connection pooling (Phase 3 optimization)
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(
@@ -105,6 +113,11 @@ jwt_manager = JWTManager(db)
 audit_logger = AuditLogger(db)
 gdpr_manager = GDPRManager(db)
 logger.info("✅ Security systems initialized (JWT, Audit, GDPR)")
+
+# Phase 4: Initialize intelligence systems with DB
+scam_intelligence = ScamIntelligence(db)
+threat_intelligence = ThreatIntelligence(db)
+logger.info("✅ Intelligence systems initialized (Scam Intelligence, Threat Intel)")
 
 # Create indexes for performance
 async def create_indexes():
@@ -1646,6 +1659,235 @@ async def analyze_batch(
         logger.error(f"Batch analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Batch analysis failed: {str(e)}")
 
+# ========== PHASE 4: INTELLIGENCE & PUBLIC SCAM DATABASE ==========
+
+class ScamReportRequest(BaseModel):
+    """Scam report submission"""
+    content: str = Field(..., min_length=10, description="Scam content/description")
+    scam_type: str = Field(..., description="Type of scam (e.g., phishing, lottery, police_threat)")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata (URLs, phone numbers)")
+
+class ScamVerifyRequest(BaseModel):
+    """Admin scam verification"""
+    status: str = Field(..., description="Status: verified or rejected")
+
+@api_router.post("/scams/report")
+@limiter.limit("10/hour")
+async def report_scam(
+    request: Request,
+    scam_report: ScamReportRequest,
+    user: Optional[Dict] = Depends(get_optional_user)
+):
+    """
+    Report a scam to the public database (community reporting)
+    Phase 4 - Public Scam Database
+    """
+    try:
+        user_id = user.get("user_id") if user else None
+        
+        scam = await scam_intelligence.report_scam(
+            content=scam_report.content,
+            scam_type=scam_report.scam_type,
+            reported_by=user_id,
+            source_type="user_report",
+            metadata=scam_report.metadata
+        )
+        
+        return {
+            "message": "Scam report submitted successfully",
+            "scam_id": scam.get("scam_id"),
+            "status": scam.get("status"),
+            "verified": scam.get("verified")
+        }
+    except Exception as e:
+        logger.error(f"Scam report error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to report scam: {str(e)}")
+
+@api_router.get("/scams/recent")
+@limiter.limit("30/minute")
+async def get_recent_scams(
+    request: Request,
+    limit: int = 20,
+    skip: int = 0,
+    verified_only: bool = False,
+    scam_type: Optional[str] = None
+):
+    """
+    Get recent scam reports
+    Phase 4 - Public Scam Database
+    """
+    try:
+        result = await scam_intelligence.get_recent_scams(
+            limit=limit,
+            skip=skip,
+            verified_only=verified_only,
+            scam_type=scam_type
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Get recent scams error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch scams: {str(e)}")
+
+@api_router.get("/scams/search")
+@limiter.limit("30/minute")
+async def search_scams(
+    request: Request,
+    q: str,
+    limit: int = 20,
+    skip: int = 0
+):
+    """
+    Search scams by keyword
+    Phase 4 - Public Scam Database
+    """
+    try:
+        result = await scam_intelligence.search_scams(
+            query=q,
+            limit=limit,
+            skip=skip
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Search scams error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+@api_router.get("/scams/stats")
+@limiter.limit("20/minute")
+async def get_scam_stats(request: Request):
+    """
+    Get scam statistics
+    Phase 4 - Public Scam Database
+    """
+    try:
+        stats = await scam_intelligence.get_scam_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Get scam stats error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch stats: {str(e)}")
+
+@api_router.post("/scams/{scam_id}/verify")
+@limiter.limit("20/minute")
+async def verify_scam(
+    request: Request,
+    scam_id: str,
+    verify_request: ScamVerifyRequest,
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Verify or reject a scam report (admin only)
+    Phase 4 - Public Scam Database
+    """
+    try:
+        # Check if user is admin
+        if user.get("role") != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Admin access required"
+            )
+        
+        success = await scam_intelligence.verify_scam(
+            scam_id=scam_id,
+            verified_by=user.get("user_id"),
+            status=verify_request.status
+        )
+        
+        if success:
+            return {
+                "message": f"Scam {verify_request.status} successfully",
+                "scam_id": scam_id
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Scam not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Verify scam error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
+
+@api_router.get("/intelligence/patterns")
+@limiter.limit("20/minute")
+async def get_learned_patterns(
+    request: Request,
+    min_occurrences: int = 3,
+    confidence_threshold: float = 0.8
+):
+    """
+    Get auto-learned patterns from scam reports
+    Phase 4 - Auto-Pattern Learning
+    """
+    try:
+        patterns = await scam_intelligence.extract_patterns_from_reports(
+            min_occurrences=min_occurrences,
+            confidence_threshold=confidence_threshold
+        )
+        return {
+            "total_patterns": len(patterns),
+            "patterns": patterns
+        }
+    except Exception as e:
+        logger.error(f"Pattern extraction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to extract patterns: {str(e)}")
+
+@api_router.get("/intelligence/trending")
+@limiter.limit("30/minute")
+async def get_trending_patterns(
+    request: Request,
+    days: int = 7,
+    limit: int = 10
+):
+    """
+    Get trending scam patterns
+    Phase 4 - Real-time Threat Intelligence
+    """
+    try:
+        trending = await scam_intelligence.get_trending_patterns(
+            days=days,
+            limit=limit
+        )
+        return {
+            "period_days": days,
+            "trending_patterns": trending
+        }
+    except Exception as e:
+        logger.error(f"Trending patterns error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch trending: {str(e)}")
+
+@api_router.get("/intelligence/threats")
+@limiter.limit("30/minute")
+async def get_threat_feeds(request: Request):
+    """
+    Get latest threat intelligence feeds
+    Phase 4 - Real-time Threat Intelligence
+    """
+    try:
+        threats = await threat_intelligence.get_threat_feeds()
+        return {
+            "total_threats": len(threats),
+            "threats": threats
+        }
+    except Exception as e:
+        logger.error(f"Threat feeds error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch threats: {str(e)}")
+
+@api_router.get("/intelligence/check-url")
+@limiter.limit("20/minute")
+async def check_url_reputation(
+    request: Request,
+    url: str
+):
+    """
+    Check URL reputation against multiple threat intelligence sources
+    Phase 4 - Real-time Threat Intelligence
+    """
+    try:
+        result = await threat_intelligence.check_url_reputation(url)
+        return result
+    except Exception as e:
+        logger.error(f"URL check error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"URL check failed: {str(e)}")
+
+# ========== END PHASE 4 ENDPOINTS ==========
+
 # Include routers in the main app
 app.include_router(api_router)
 
@@ -1688,6 +1930,19 @@ async def startup_db_optimization():
             ("scam_assessment.risk_level", 1),
             ("timestamp", -1)
         ])
+        
+        # Phase 4: Scam database indexes
+        await db.scam_reports.create_index("scam_id", unique=True)
+        await db.scam_reports.create_index("scam_type")
+        await db.scam_reports.create_index("verified")
+        await db.scam_reports.create_index("status")
+        await db.scam_reports.create_index([("created_at", -1)])
+        await db.scam_reports.create_index([("report_count", -1)])
+        await db.scam_reports.create_index([("severity", 1), ("verified", 1)])
+        
+        # Phase 4: URL checks cache index
+        await db.url_checks.create_index("url", unique=True)
+        await db.url_checks.create_index("expires_at")
         
         logger.info("✅ Database indexes created successfully")
         logger.info("✅ Connection pool configured (10-50 connections)")
