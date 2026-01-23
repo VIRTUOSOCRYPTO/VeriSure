@@ -782,3 +782,428 @@ async def cleanup_old_data(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data cleanup failed: {str(e)}"
         )
+
+
+
+# ============== ANALYTICS DASHBOARD ENDPOINTS (Phase 4) ==============
+
+@admin_router.get("/analytics/overview")
+async def get_analytics_overview(
+    user: Dict = Depends(require_role(UserRole.ADMIN)),
+    db = Depends(get_db)
+):
+    """
+    Get analytics overview (Admin only)
+    
+    Returns:
+    - Total analyses
+    - Total users
+    - High-risk detections
+    - Recent activity
+    - Growth metrics
+    """
+    try:
+        from datetime import timedelta, timezone
+        
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday_start = today_start - timedelta(days=1)
+        week_start = today_start - timedelta(days=7)
+        month_start = today_start - timedelta(days=30)
+        
+        # Total counts
+        total_analyses = await db.analysis_reports.count_documents({})
+        total_users = await db.users.count_documents({})
+        high_risk_count = await db.analysis_reports.count_documents(
+            {"scam_assessment.risk_level": "high"}
+        )
+        
+        # Today's metrics
+        today_analyses = await db.analysis_reports.count_documents({
+            "timestamp": {"$gte": today_start.isoformat()}
+        })
+        
+        # Yesterday's metrics for comparison
+        yesterday_analyses = await db.analysis_reports.count_documents({
+            "timestamp": {
+                "$gte": yesterday_start.isoformat(),
+                "$lt": today_start.isoformat()
+            }
+        })
+        
+        # Weekly metrics
+        week_analyses = await db.analysis_reports.count_documents({
+            "timestamp": {"$gte": week_start.isoformat()}
+        })
+        
+        # Monthly metrics
+        month_analyses = await db.analysis_reports.count_documents({
+            "timestamp": {"$gte": month_start.isoformat()}
+        })
+        
+        # Growth calculations
+        today_growth = ((today_analyses - yesterday_analyses) / yesterday_analyses * 100) if yesterday_analyses > 0 else 0
+        
+        # Risk distribution
+        medium_risk = await db.analysis_reports.count_documents(
+            {"scam_assessment.risk_level": "medium"}
+        )
+        low_risk = await db.analysis_reports.count_documents(
+            {"scam_assessment.risk_level": "low"}
+        )
+        
+        # User role distribution
+        free_users = await db.users.count_documents({"role": "free"})
+        premium_users = await db.users.count_documents({"role": "premium"})
+        enterprise_users = await db.users.count_documents({"role": "enterprise"})
+        
+        # Recent activity (last 10)
+        recent_analyses = await db.analysis_reports.find(
+            {},
+            {"_id": 0, "report_id": 1, "timestamp": 1, "scam_assessment.risk_level": 1, "origin_verdict.classification": 1}
+        ).sort("timestamp", -1).limit(10).to_list(length=10)
+        
+        return {
+            "overview": {
+                "total_analyses": total_analyses,
+                "total_users": total_users,
+                "high_risk_detections": high_risk_count,
+                "today_analyses": today_analyses,
+                "today_growth_percent": round(today_growth, 2)
+            },
+            "time_metrics": {
+                "today": today_analyses,
+                "yesterday": yesterday_analyses,
+                "this_week": week_analyses,
+                "this_month": month_analyses
+            },
+            "risk_distribution": {
+                "high": high_risk_count,
+                "medium": medium_risk,
+                "low": low_risk
+            },
+            "user_distribution": {
+                "free": free_users,
+                "premium": premium_users,
+                "enterprise": enterprise_users,
+                "total": total_users
+            },
+            "recent_activity": recent_analyses
+        }
+        
+    except Exception as e:
+        logger.error(f"Analytics overview error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve analytics overview: {str(e)}"
+        )
+
+
+@admin_router.get("/analytics/trends")
+async def get_analytics_trends(
+    days: int = 30,
+    user: Dict = Depends(require_role(UserRole.ADMIN)),
+    db = Depends(get_db)
+):
+    """
+    Get analytics trends over time (Admin only)
+    
+    Returns time-series data for charts:
+    - Analyses per day
+    - Risk levels per day
+    - Origin classifications per day
+    """
+    try:
+        from datetime import timedelta, timezone
+        from collections import defaultdict
+        
+        now = datetime.now(timezone.utc)
+        start_date = now - timedelta(days=days)
+        
+        # Get all analyses in the time range
+        cursor = db.analysis_reports.find(
+            {"timestamp": {"$gte": start_date.isoformat()}},
+            {
+                "_id": 0,
+                "timestamp": 1,
+                "scam_assessment.risk_level": 1,
+                "origin_verdict.classification": 1
+            }
+        )
+        analyses = await cursor.to_list(length=None)
+        
+        # Group by date
+        daily_data = defaultdict(lambda: {
+            "date": "",
+            "total": 0,
+            "high_risk": 0,
+            "medium_risk": 0,
+            "low_risk": 0,
+            "ai_generated": 0,
+            "original": 0,
+            "unclear": 0
+        })
+        
+        for analysis in analyses:
+            try:
+                # Parse timestamp
+                ts = datetime.fromisoformat(analysis["timestamp"].replace('Z', '+00:00'))
+                date_key = ts.strftime("%Y-%m-%d")
+                
+                # Update counts
+                daily_data[date_key]["date"] = date_key
+                daily_data[date_key]["total"] += 1
+                
+                # Risk levels
+                risk = analysis.get("scam_assessment", {}).get("risk_level", "").lower()
+                if risk == "high":
+                    daily_data[date_key]["high_risk"] += 1
+                elif risk == "medium":
+                    daily_data[date_key]["medium_risk"] += 1
+                elif risk == "low":
+                    daily_data[date_key]["low_risk"] += 1
+                
+                # Origin classification
+                classification = analysis.get("origin_verdict", {}).get("classification", "").lower()
+                if "ai" in classification:
+                    daily_data[date_key]["ai_generated"] += 1
+                elif "original" in classification:
+                    daily_data[date_key]["original"] += 1
+                else:
+                    daily_data[date_key]["unclear"] += 1
+            except Exception as parse_error:
+                logger.warning(f"Failed to parse analysis: {parse_error}")
+                continue
+        
+        # Convert to sorted list
+        trends = sorted(daily_data.values(), key=lambda x: x["date"])
+        
+        return {
+            "period_days": days,
+            "data_points": len(trends),
+            "trends": trends
+        }
+        
+    except Exception as e:
+        logger.error(f"Analytics trends error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve analytics trends: {str(e)}"
+        )
+
+
+@admin_router.get("/analytics/scam-patterns")
+async def get_scam_pattern_analytics(
+    limit: int = 20,
+    user: Dict = Depends(require_role(UserRole.ADMIN)),
+    db = Depends(get_db)
+):
+    """
+    Get scam pattern frequency analytics (Admin only)
+    
+    Returns:
+    - Most common scam patterns
+    - Pattern frequency distribution
+    - Behavioral flag statistics
+    """
+    try:
+        from collections import Counter
+        
+        # Get all analyses with scam patterns
+        cursor = db.analysis_reports.find(
+            {},
+            {
+                "_id": 0,
+                "scam_assessment.scam_patterns": 1,
+                "scam_assessment.behavioral_flags": 1
+            }
+        )
+        analyses = await cursor.to_list(length=None)
+        
+        # Count patterns
+        all_patterns = []
+        all_flags = []
+        
+        for analysis in analyses:
+            patterns = analysis.get("scam_assessment", {}).get("scam_patterns", [])
+            flags = analysis.get("scam_assessment", {}).get("behavioral_flags", [])
+            
+            all_patterns.extend(patterns)
+            all_flags.extend(flags)
+        
+        # Get top patterns
+        pattern_counter = Counter(all_patterns)
+        flag_counter = Counter(all_flags)
+        
+        # Remove "No known scam patterns detected"
+        if "No known scam patterns detected" in pattern_counter:
+            del pattern_counter["No known scam patterns detected"]
+        if "No behavioral manipulation detected" in flag_counter:
+            del flag_counter["No behavioral manipulation detected"]
+        
+        top_patterns = [
+            {"pattern": pattern, "count": count}
+            for pattern, count in pattern_counter.most_common(limit)
+        ]
+        
+        top_flags = [
+            {"flag": flag, "count": count}
+            for flag, count in flag_counter.most_common(limit)
+        ]
+        
+        return {
+            "total_unique_patterns": len(pattern_counter),
+            "total_unique_flags": len(flag_counter),
+            "top_patterns": top_patterns,
+            "top_behavioral_flags": top_flags
+        }
+        
+    except Exception as e:
+        logger.error(f"Scam pattern analytics error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve scam pattern analytics: {str(e)}"
+        )
+
+
+@admin_router.get("/analytics/users")
+async def get_user_analytics(
+    user: Dict = Depends(require_role(UserRole.ADMIN)),
+    db = Depends(get_db)
+):
+    """
+    Get user analytics (Admin only)
+    
+    Returns:
+    - User growth over time
+    - Active users
+    - User role distribution
+    - Top users by activity
+    """
+    try:
+        from datetime import timedelta, timezone
+        
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_start = today_start - timedelta(days=7)
+        month_start = today_start - timedelta(days=30)
+        
+        # Total users by role
+        total_users = await db.users.count_documents({})
+        free_users = await db.users.count_documents({"role": "free"})
+        premium_users = await db.users.count_documents({"role": "premium"})
+        enterprise_users = await db.users.count_documents({"role": "enterprise"})
+        
+        # Users created this week/month
+        week_new_users = await db.users.count_documents({
+            "created_at": {"$gte": week_start}
+        })
+        month_new_users = await db.users.count_documents({
+            "created_at": {"$gte": month_start}
+        })
+        
+        # Active users (logged in last 7 days)
+        active_users = await db.users.count_documents({
+            "last_login": {"$gte": week_start}
+        })
+        
+        # Get user activity statistics
+        users_with_activity = await db.users.find(
+            {"api_calls_count": {"$gt": 0}},
+            {"_id": 0, "email": 1, "full_name": 1, "api_calls_count": 1, "role": 1}
+        ).sort("api_calls_count", -1).limit(10).to_list(length=10)
+        
+        return {
+            "total_users": total_users,
+            "role_distribution": {
+                "free": free_users,
+                "premium": premium_users,
+                "enterprise": enterprise_users
+            },
+            "growth": {
+                "new_this_week": week_new_users,
+                "new_this_month": month_new_users
+            },
+            "engagement": {
+                "active_users_7d": active_users,
+                "active_rate": round(active_users / total_users * 100, 2) if total_users > 0 else 0
+            },
+            "top_users": users_with_activity
+        }
+        
+    except Exception as e:
+        logger.error(f"User analytics error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve user analytics: {str(e)}"
+        )
+
+
+@admin_router.get("/analytics/performance")
+async def get_performance_analytics(
+    user: Dict = Depends(require_role(UserRole.ADMIN)),
+    db = Depends(get_db)
+):
+    """
+    Get system performance analytics (Admin only)
+    
+    Returns:
+    - Cache performance
+    - Database statistics
+    - API usage patterns
+    """
+    try:
+        from server import cache_manager
+        from datetime import timedelta, timezone
+        
+        now = datetime.now(timezone.utc)
+        hour_ago = now - timedelta(hours=1)
+        day_ago = now - timedelta(days=1)
+        
+        # Cache statistics
+        cache_stats = cache_manager.get_cache_stats()
+        
+        # Recent API activity
+        recent_hour_analyses = await db.analysis_reports.count_documents({
+            "timestamp": {"$gte": hour_ago.isoformat()}
+        })
+        recent_day_analyses = await db.analysis_reports.count_documents({
+            "timestamp": {"$gte": day_ago.isoformat()}
+        })
+        
+        # Database collection stats
+        total_reports = await db.analysis_reports.count_documents({})
+        total_audit_logs = await db.audit_logs.count_documents({})
+        
+        # Async job statistics (if available)
+        pending_jobs = 0
+        try:
+            from server import celery_app
+            inspect = celery_app.control.inspect()
+            active = inspect.active()
+            pending_jobs = sum(len(tasks) for tasks in (active or {}).values())
+        except Exception:
+            pass
+        
+        return {
+            "cache": cache_stats,
+            "api_activity": {
+                "last_hour": recent_hour_analyses,
+                "last_24h": recent_day_analyses,
+                "avg_per_hour_24h": round(recent_day_analyses / 24, 2)
+            },
+            "database": {
+                "total_reports": total_reports,
+                "total_audit_logs": total_audit_logs
+            },
+            "async_jobs": {
+                "pending": pending_jobs
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Performance analytics error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve performance analytics: {str(e)}"
+        )
