@@ -9,6 +9,7 @@ import ComparisonPage from "@/pages/ComparisonPage";
 import WhatsAppPage from "@/pages/WhatsAppPage";
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import HelpCenterPage from "@/pages/HelpCenterPage";
+import PublicScamTrendsPage from "@/pages/PublicScamTrendsPage";
 import { Toaster } from "@/components/ui/sonner";
 import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -30,6 +31,7 @@ function App() {
               <Route path="/whatsapp-bot" element={<WhatsAppPage />} />
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
               <Route path="/help" element={<HelpCenterPage />} />
+              <Route path="/public/scam-trends" element={<PublicScamTrendsPage />} />
             </Routes>
           </BrowserRouter>
           <Toaster />
