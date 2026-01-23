@@ -135,7 +135,7 @@ const MainTabs = () => {
       <Tab.Screen
         name="Compare"
         component={ComparisonStack}
-        options={
+        options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="compare" color={color} size={size} />
           ),
