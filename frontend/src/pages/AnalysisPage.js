@@ -115,7 +115,7 @@ const AnalysisPage = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => navigate('/batch')}
-                className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-3 py-2 sm:px-4 sm:py-2 font-mono text-xs sm:text-sm uppercase tracking-wider transition-all min-h-[40px] sm:min-h-[44px]"
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-3 py-2 sm:px-4 sm:py-2 font-mono text-xs sm:text-sm uppercase tracking-wider transition-all min-h-[40px] sm:min-h-[44px]"
                 data-testid="batch-btn"
               >
                 Batch
