@@ -3,8 +3,14 @@ Vector Store Module
 ChromaDB integration for semantic similarity search and pattern learning
 """
 
-import chromadb
-from chromadb.config import Settings
+try:
+    import chromadb
+    from chromadb.config import Settings
+    CHROMADB_AVAILABLE = True
+except ImportError as e:
+    CHROMADB_AVAILABLE = False
+    print(f"⚠️  ChromaDB not available: {e}. Vector store will use fallback mode.")
+
 from typing import List, Dict, Optional, Tuple
 import logging
 import numpy as np
@@ -25,6 +31,15 @@ class VectorStore:
     
     def __init__(self):
         """Initialize ChromaDB client and collections"""
+        self.enabled = CHROMADB_AVAILABLE
+        
+        if not self.enabled:
+            logger.warning("⚠️  Vector store running in fallback mode - ChromaDB unavailable")
+            self.client = None
+            self.scam_patterns_collection = None
+            self.image_signatures_collection = None
+            return
+            
         try:
             # Create persistent ChromaDB client
             self.client = chromadb.PersistentClient(
@@ -181,6 +196,9 @@ class VectorStore:
         Returns:
             List of matching patterns
         """
+        if not self.enabled:
+            return []
+            
         try:
             # Generate embedding for query
             query_embedding = embedding_model.encode_single(query_text)
