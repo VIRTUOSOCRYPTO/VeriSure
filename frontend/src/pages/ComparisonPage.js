@@ -317,8 +317,8 @@ const ComparisonPage = () => {
             <p className="text-sm text-slate-600 font-sans mb-4">These patterns appear in ALL reports</p>
             <div className="space-y-2">
               {comparisonData.commonPatterns.map((pattern, idx) => (
-                <div key={idx} className="flex items-start gap-3 bg-white p-3 rounded border border-blue-200">
-                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-mono text-xs flex-shrink-0">
+                <div key={idx} className="flex items-start gap-3 bg-white p-3 rounded border border-slate-200">
+                  <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-mono text-xs flex-shrink-0">
                     ✓
                   </div>
                   <span className="font-sans text-sm text-slate-800">{pattern}</span>
