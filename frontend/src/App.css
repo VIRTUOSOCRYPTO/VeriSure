@@ -18,3 +18,35 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
+
+/* Responsive typography helpers */
+@media (max-width: 640px) {
+    .mobile-compact {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+}
+
+/* Better touch targets for mobile */
+@media (max-width: 768px) {
+    button, a {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Prevent horizontal scroll on mobile */
+body {
+    overflow-x: hidden;
+}
+
+/* Improve readability on small screens */
+@media (max-width: 640px) {
+    h1 {
+        word-break: break-word;
+    }
+    
+    p {
+        hyphens: auto;
+    }
+}
