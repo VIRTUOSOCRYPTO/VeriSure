@@ -7,9 +7,12 @@ import ResultsPage from "@/pages/ResultsPage";
 import HistoryPage from "@/pages/HistoryPage";
 import ComparisonPage from "@/pages/ComparisonPage";
 import WhatsAppPage from "@/pages/WhatsAppPage";
+import AdminDashboardPage from "@/pages/AdminDashboardPage";
+import HelpCenterPage from "@/pages/HelpCenterPage";
 import { Toaster } from "@/components/ui/sonner";
 import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import OnboardingTutorial from "@/components/OnboardingTutorial";
 
 function App() {
   return (
@@ -25,9 +28,12 @@ function App() {
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/compare" element={<ComparisonPage />} />
               <Route path="/whatsapp-bot" element={<WhatsAppPage />} />
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/help" element={<HelpCenterPage />} />
             </Routes>
           </BrowserRouter>
           <Toaster />
+          <OnboardingTutorial />
         </div>
       </AccessibilityProvider>
     </LanguageProvider>
