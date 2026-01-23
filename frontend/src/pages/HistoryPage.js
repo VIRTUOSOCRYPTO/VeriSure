@@ -124,7 +124,7 @@ const HistoryPage = () => {
                 <>
                   <button
                     onClick={() => setSelectionMode(true)}
-                    className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                    className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
                     data-testid="compare-mode-btn"
                   >
                     Compare Reports
