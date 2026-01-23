@@ -1,4 +1,4 @@
-"# 🧪 VeriSure Mobile App - Complete Testing Guide
+# 🧪 VeriSure Mobile App - Complete Testing Guide
 
 ## 📋 Prerequisites
 
@@ -49,7 +49,7 @@ API_BASE_URL=http://localhost:8001/api
 **For Physical Device:**
 ```bash
 # Find your computer's local IP address:
-# macOS/Linux: ifconfig | grep \"inet \"
+# macOS/Linux: ifconfig | grep "inet "
 # Windows: ipconfig
 API_BASE_URL=http://YOUR_IP_ADDRESS:8001/api
 ```
@@ -65,7 +65,7 @@ sudo supervisorctl restart backend
 # Check if backend is running
 curl http://localhost:8001/api/
 
-# You should see: {\"message\": \"VeriSure API - Advanced AI Origin & Scam Forensics\"}
+# You should see: {"message": "VeriSure API - Advanced AI Origin & Scam Forensics"}
 ```
 
 ---
@@ -97,8 +97,8 @@ yarn ios
 xcrun simctl list devices
 
 # Run on specific device
-yarn ios --simulator=\"iPhone 15 Pro\"
-yarn ios --simulator=\"iPad Pro (12.9-inch)\"
+yarn ios --simulator="iPhone 15 Pro"
+yarn ios --simulator="iPad Pro (12.9-inch)"
 ```
 
 ### Step 4: Manual Build with Xcode (If needed)
@@ -113,7 +113,7 @@ open ios/VeriSureMobile.xcworkspace
 
 ### Common iOS Issues & Fixes:
 
-**Issue: \"Command PhaseScriptExecution failed\"**
+**Issue: "Command PhaseScriptExecution failed"**
 ```bash
 cd ios
 pod deintegrate
@@ -122,12 +122,12 @@ cd ..
 yarn ios
 ```
 
-**Issue: \"Metro bundler not found\"**
+**Issue: "Metro bundler not found"**
 ```bash
 yarn start --reset-cache
 ```
 
-**Issue: \"Unable to boot simulator\"**
+**Issue: "Unable to boot simulator"**
 ```bash
 # Reset simulator
 xcrun simctl erase all
@@ -141,7 +141,7 @@ xcrun simctl erase all
 
 1. Open Android Studio
 2. Go to: Tools > Device Manager (or AVD Manager)
-3. Click \"Create Device\"
+3. Click "Create Device"
 4. Select: Pixel 5 or Pixel 7 (recommended)
 5. Download System Image: Android 13 (API 33) or Android 14 (API 34)
 6. Click Finish
@@ -183,23 +183,23 @@ yarn android
 
 ### Common Android Issues & Fixes:
 
-**Issue: \"SDK location not found\"**
+**Issue: "SDK location not found"**
 ```bash
 # Create local.properties file
-echo \"sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk\" > android/local.properties
+echo "sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk" > android/local.properties
 
 # On Windows:
 # echo sdk.dir=C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Android\\Sdk > android/local.properties
 ```
 
-**Issue: \"ENOSPC: System limit for number of file watchers reached\"**
+**Issue: "ENOSPC: System limit for number of file watchers reached"**
 ```bash
 # Linux only
 echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 ```
 
-**Issue: \"Could not connect to development server\"**
+**Issue: "Could not connect to development server"**
 ```bash
 # Restart Metro bundler
 yarn start --reset-cache
@@ -209,7 +209,7 @@ adb reverse tcp:8081 tcp:8081
 adb reverse tcp:8001 tcp:8001
 ```
 
-**Issue: \"Task :app:installDebug FAILED\"**
+**Issue: "Task :app:installDebug FAILED"**
 ```bash
 cd android
 ./gradlew clean
@@ -250,18 +250,18 @@ yarn android
 
 7. **Build & Run:**
    - Press Cmd + R
-   - First time: \"Untrusted Developer\" on device
+   - First time: "Untrusted Developer" on device
    - Fix: Settings > General > VPN & Device Management > Trust Developer
 
 ### Android Physical Device:
 
 1. **Enable Developer Mode:**
    - Settings > About Phone
-   - Tap \"Build Number\" 7 times
+   - Tap "Build Number" 7 times
 
 2. **Enable USB Debugging:**
    - Settings > Developer Options
-   - Enable \"USB Debugging\"
+   - Enable "USB Debugging"
 
 3. **Connect Device:**
    - Connect via USB
@@ -320,10 +320,10 @@ yarn android
 - [ ] Colors should be readable in both modes
 
 #### 5. Bottom Navigation
-- [ ] Tap \"Home\" tab
-- [ ] Tap \"History\" tab
-- [ ] Tap \"Compare\" tab
-- [ ] Tap \"Profile\" tab
+- [ ] Tap "Home" tab
+- [ ] Tap "History" tab
+- [ ] Tap "Compare" tab
+- [ ] Tap "Profile" tab
 - [ ] All tabs should be accessible
 
 #### 6. Backend Connection
@@ -333,7 +333,7 @@ yarn android
 
 #### 7. Offline Indicator
 - [ ] Turn off WiFi on device/simulator
-- [ ] Home screen should show \"Offline Mode\" banner
+- [ ] Home screen should show "Offline Mode" banner
 - [ ] Turn WiFi back on
 - [ ] Banner should disappear
 
@@ -364,11 +364,11 @@ yarn android
 adb logcat
 
 # Method 3: Filtered logs
-adb logcat | grep \"ReactNative\"
+adb logcat | grep "ReactNative"
 
 # Method 4: In-app developer menu
 # Shake device or press Cmd + M (Mac) / Ctrl + M (Windows)
-# Select \"Debug\" > Opens Chrome debugger
+# Select "Debug" > Opens Chrome debugger
 ```
 
 ### Common Debug Commands
@@ -394,15 +394,15 @@ adb logcat | grep \"ReactNative\"
 ### Scenario 1: New User Registration
 ```
 1. Launch app
-2. Click \"Register\" link
+2. Click "Register" link
 3. Fill form:
    - Full Name: Test User
    - Email: test@example.com
    - Organization: Test Org
    - Password: TestPass123
-4. Click \"Register\"
+4. Click "Register"
 5. ✅ Should auto-login and show Home screen
-6. ✅ Home screen should show \"Welcome back, Test User\"
+6. ✅ Home screen should show "Welcome back, Test User"
 ```
 
 ### Scenario 2: Existing User Login
@@ -410,7 +410,7 @@ adb logcat | grep \"ReactNative\"
 1. Launch app
 2. Enter email: test@example.com
 3. Enter password: TestPass123
-4. Click \"Login\"
+4. Click "Login"
 5. ✅ Should show Home screen with user data
 ```
 
@@ -419,8 +419,8 @@ adb logcat | grep \"ReactNative\"
 1. Launch app
 2. Enter email: wrong@example.com
 3. Enter password: WrongPass
-4. Click \"Login\"
-5. ✅ Should show error toast: \"Login Failed\"
+4. Click "Login"
+5. ✅ Should show error toast: "Login Failed"
 6. ✅ Should stay on Login screen
 ```
 
@@ -455,13 +455,13 @@ adb logcat | grep \"ReactNative\"
 ### Scenario 7: Navigation Flow
 ```
 1. Login to app
-2. From Home, tap \"Text Analysis\" card
+2. From Home, tap "Text Analysis" card
 3. ✅ Should navigate to Text Analysis screen
 4. Tap back button
 5. ✅ Should return to Home screen
-6. Tap \"History\" tab
+6. Tap "History" tab
 7. ✅ Should show History screen
-8. Tap \"Profile\" tab
+8. Tap "Profile" tab
 9. ✅ Should show Profile screen
 ```
 
@@ -496,7 +496,7 @@ adb shell dumpsys meminfo com.verisure.app
 
 ## 🐛 TROUBLESHOOTING COMMON ISSUES
 
-### Issue: \"Unable to resolve module\"
+### Issue: "Unable to resolve module"
 ```bash
 # Clear Metro cache
 yarn start --reset-cache
@@ -509,7 +509,7 @@ rm -rf node_modules
 yarn install
 ```
 
-### Issue: \"Build failed\" (iOS)
+### Issue: "Build failed" (iOS)
 ```bash
 cd ios
 pod deintegrate
@@ -519,7 +519,7 @@ cd ..
 yarn ios
 ```
 
-### Issue: \"Build failed\" (Android)
+### Issue: "Build failed" (Android)
 ```bash
 cd android
 ./gradlew clean
@@ -547,7 +547,7 @@ adb reverse tcp:8001 tcp:8001
 API_BASE_URL=http://192.168.1.XXX:8001/api
 ```
 
-### Issue: \"Network request failed\"
+### Issue: "Network request failed"
 ```bash
 # iOS: Edit Info.plist to allow localhost
 # Add to ios/VeriSureMobile/Info.plist:
@@ -655,4 +655,3 @@ Once remaining screens are implemented, you can test:
 - Share functionality
 
 **Current Status**: Foundation is solid, ready for screen development! 🚀
-"

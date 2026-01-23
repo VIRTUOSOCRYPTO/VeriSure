@@ -1,0 +1,48 @@
+{
+  "name": "VeriSure",
+  "displayName": "VeriSure - Scam Detector",
+  "expo": {
+    "name": "VeriSure",
+    "slug": "verisure",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#7C3AED"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.verisure.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "VeriSure needs camera access to analyze images and videos for scam detection",
+        "NSMicrophoneUsageDescription": "VeriSure needs microphone access to analyze audio for deepfake detection",
+        "NSPhotoLibraryUsageDescription": "VeriSure needs photo library access to analyze images for scam detection",
+        "NSPhotoLibraryAddUsageDescription": "VeriSure needs permission to save analysis reports"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#7C3AED"
+      },
+      "package": "com.verisure.app",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

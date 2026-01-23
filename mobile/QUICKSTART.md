@@ -1,4 +1,4 @@
-"# 🚀 Quick Start - VeriSure Mobile Testing
+# 🚀 Quick Start - VeriSure Mobile Testing
 
 ## ⚡ Super Fast Start
 
@@ -31,18 +31,18 @@ cd /app && sudo supervisorctl restart backend
 
 ### 1️⃣ Register New User
 ```
-Open app → Tap \"Register\"
+Open app → Tap "Register"
 Name: Test User
 Email: test@example.com
 Password: TestPass123
-Tap \"Register\" → Should auto-login
+Tap "Register" → Should auto-login
 ```
 
 ### 2️⃣ Login Existing User
 ```
 Email: test@example.com
 Password: TestPass123
-Tap \"Login\" → See Home screen
+Tap "Login" → See Home screen
 ```
 
 ### 3️⃣ Explore Home
@@ -64,22 +64,22 @@ Tap bottom tabs:
 
 ## 🐛 Common Issues - Quick Fixes
 
-### \"Cannot connect to backend\"
+### "Cannot connect to backend"
 ```bash
 # Update .env with correct URL
 cd /app/mobile
 
 # For Android Emulator:
-echo \"API_BASE_URL=http://10.0.2.2:8001/api\" > .env
+echo "API_BASE_URL=http://10.0.2.2:8001/api" > .env
 
 # For iOS Simulator:
-echo \"API_BASE_URL=http://localhost:8001/api\" > .env
+echo "API_BASE_URL=http://localhost:8001/api" > .env
 
 # Then rebuild
 yarn ios    # or yarn android
 ```
 
-### \"Build failed\"
+### "Build failed"
 ```bash
 # iOS:
 cd /app/mobile/ios
@@ -94,7 +94,7 @@ cd ..
 yarn android
 ```
 
-### \"Metro bundler issues\"
+### "Metro bundler issues"
 ```bash
 cd /app/mobile
 yarn start --reset-cache
@@ -182,4 +182,3 @@ Once remaining screens are built, you'll be able to test:
 **Current Status**: Foundation complete ✅ | Screens: 27% (3/11) ⏳
 
 **Quick support**: Check terminal logs first, they usually tell you exactly what's wrong!
-"
