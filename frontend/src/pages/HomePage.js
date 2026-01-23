@@ -13,48 +13,53 @@ const HomePage = () => {
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Shield className="w-8 h-8 text-slate-900" />
-              <h1 className="font-mono font-bold text-2xl text-slate-900" data-testid="app-title">{t('appTitle')}</h1>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-slate-900" />
+              <h1 className="font-mono font-bold text-lg sm:text-xl md:text-2xl text-slate-900" data-testid="app-title">{t('appTitle')}</h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <button
                 onClick={() => navigate('/help')}
                 className="text-slate-600 hover:text-slate-900 p-2 rounded-sm hover:bg-slate-100 transition-all"
                 aria-label="Help Center"
                 data-testid="help-btn"
               >
-                <HelpCircle className="w-6 h-6" />
+                <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
               <button
                 onClick={() => navigate('/public/scam-trends')}
-                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[44px]"
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-3 py-2 sm:px-6 sm:py-3 font-mono text-xs sm:text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[40px] sm:min-h-[44px]"
                 data-testid="trends-btn"
               >
-                <TrendingUp className="w-4 h-4 inline mr-1" />
-                Trends
+                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                <span className="hidden sm:inline">Trends</span>
+                <span className="sm:hidden">Tr</span>
               </button>
               <button
                 onClick={() => navigate('/batch')}
-                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[44px]"
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-3 py-2 sm:px-6 sm:py-3 font-mono text-xs sm:text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[40px] sm:min-h-[44px]"
                 data-testid="batch-btn"
               >
                 Batch
               </button>
               <button
                 onClick={() => navigate('/history')}
-                className="bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                className="hidden md:inline-flex bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
                 data-testid="history-btn"
               >
                 History
               </button>
-              <LanguageSelector />
-              <FontSizeControl />
+              <div className="hidden sm:block">
+                <LanguageSelector />
+              </div>
+              <div className="hidden sm:block">
+                <FontSizeControl />
+              </div>
               <button
                 onClick={() => navigate('/analyze')}
-                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[44px]"
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-4 py-2 sm:px-6 sm:py-3 font-mono text-xs sm:text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[40px] sm:min-h-[44px]"
                 data-testid="analyze-now-btn"
               >
                 {t('analyzeNow')}
@@ -65,43 +70,44 @@ const HomePage = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-16 md:py-24">
+      <section className="relative overflow-hidden py-8 sm:py-12 md:py-16 lg:py-24">
         <div className="absolute inset-0 grid-bg opacity-50"></div>
-        <div className="crosshair top-8 left-8"></div>
-        <div className="crosshair top-8 right-8" style={{ borderLeft: 'none', borderRight: '2px solid #cbd5e1' }}></div>
+        <div className="crosshair top-4 left-4 sm:top-8 sm:left-8 hidden sm:block"></div>
+        <div className="crosshair top-4 right-4 sm:top-8 sm:right-8 hidden sm:block" style={{ borderLeft: 'none', borderRight: '2px solid #cbd5e1' }}></div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            <div className="lg:col-span-7">
-              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4" data-testid="hero-label">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 items-center">
+            <div className="lg:col-span-7 text-center lg:text-left">
+              <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3 sm:mb-4" data-testid="hero-label">
                 {t('heroLabel')}
               </div>
-              <h2 className="font-mono font-bold text-4xl sm:text-5xl lg:text-6xl tracking-tight text-slate-900 mb-6" data-testid="hero-title">
+              <h2 className="font-mono font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-slate-900 mb-4 sm:mb-6" data-testid="hero-title">
                 {t('heroTitle')}
               </h2>
-              <p className="font-sans text-lg text-slate-600 leading-relaxed mb-8 max-w-2xl" data-testid="hero-description">
+              <p className="font-sans text-base sm:text-lg text-slate-600 leading-relaxed mb-6 sm:mb-8 max-w-2xl mx-auto lg:mx-0" data-testid="hero-description">
                 {t('heroDescription')}
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
                 <button
                   onClick={() => navigate('/analyze')}
-                  className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-4 font-mono text-base uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[56px]"
+                  className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 sm:px-8 py-3 sm:py-4 font-mono text-sm sm:text-base uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[56px]"
                   data-testid="get-started-btn"
                 >
-                  <Upload className="w-5 h-5" />
+                  <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
                   {t('getStarted')}
                 </button>
                 <button
                   onClick={() => navigate('/batch')}
-                  className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-4 font-mono text-base uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[56px]"
+                  className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 sm:px-8 py-3 sm:py-4 font-mono text-sm sm:text-base uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[56px]"
                   data-testid="batch-analysis-btn"
                 >
-                  <Layers className="w-5 h-5" />
-                  Batch Analysis
+                  <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Batch Analysis</span>
+                  <span className="sm:hidden">Batch</span>
                 </button>
                 <button
                   onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="bg-white border-2 border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-8 py-4 font-mono text-base uppercase tracking-wider transition-all min-h-[56px]"
+                  className="bg-white border-2 border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-6 sm:px-8 py-3 sm:py-4 font-mono text-sm sm:text-base uppercase tracking-wider transition-all min-h-[48px] sm:min-h-[56px]"
                   data-testid="how-it-works-btn"
                 >
                   {t('howItWorks')}
@@ -109,27 +115,27 @@ const HomePage = () => {
               </div>
 
               {/* Quick Info Cards */}
-              <div className="mt-8 grid grid-cols-3 gap-3">
-                <div className="bg-emerald-50 border-2 border-emerald-200 rounded-sm p-3 text-center">
-                  <CheckCircle className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
-                  <div className="font-mono text-xs text-emerald-700">{t('safe')}</div>
+              <div className="mt-6 sm:mt-8 grid grid-cols-3 gap-2 sm:gap-3 max-w-md mx-auto lg:mx-0">
+                <div className="bg-emerald-50 border-2 border-emerald-200 rounded-sm p-2 sm:p-3 text-center">
+                  <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-emerald-600 mx-auto mb-1" />
+                  <div className="font-mono text-[10px] sm:text-xs text-emerald-700">{t('safe')}</div>
                 </div>
-                <div className="bg-amber-50 border-2 border-amber-200 rounded-sm p-3 text-center">
-                  <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-1" />
-                  <div className="font-mono text-xs text-amber-700">{t('warning')}</div>
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-sm p-2 sm:p-3 text-center">
+                  <AlertTriangle className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600 mx-auto mb-1" />
+                  <div className="font-mono text-[10px] sm:text-xs text-amber-700">{t('warning')}</div>
                 </div>
-                <div className="bg-rose-50 border-2 border-rose-200 rounded-sm p-3 text-center">
-                  <AlertTriangle className="w-6 h-6 text-rose-600 mx-auto mb-1" />
-                  <div className="font-mono text-xs text-rose-700">{t('danger')}</div>
+                <div className="bg-rose-50 border-2 border-rose-200 rounded-sm p-2 sm:p-3 text-center">
+                  <AlertTriangle className="w-4 h-4 sm:w-6 sm:h-6 text-rose-600 mx-auto mb-1" />
+                  <div className="font-mono text-[10px] sm:text-xs text-rose-700">{t('danger')}</div>
                 </div>
               </div>
             </div>
-            <div className="lg:col-span-5">
-              <div className="relative">
+            <div className="lg:col-span-5 mt-8 lg:mt-0">
+              <div className="relative max-w-md mx-auto lg:max-w-none">
                 <img 
                   src="https://images.pexels.com/photos/5473955/pexels-photo-5473955.jpeg" 
                   alt="Digital security visualization"
-                  className="rounded-sm shadow-lg opacity-90"
+                  className="rounded-sm shadow-lg opacity-90 w-full h-auto"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/10 to-transparent"></div>
               </div>
@@ -139,76 +145,76 @@ const HomePage = () => {
       </section>
 
       {/* Stats Section - Social Proof */}
-      <section className="py-16 bg-slate-900" data-testid="stats-section">
+      <section className="py-8 sm:py-12 md:py-16 bg-slate-900" data-testid="stats-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
             <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <TrendingUp className="w-10 h-10 text-emerald-400" />
+              <div className="flex items-center justify-center mb-2 sm:mb-4">
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-emerald-400" />
               </div>
-              <div className="font-mono text-4xl font-bold text-white mb-2">10,000+</div>
-              <div className="font-sans text-sm text-slate-400 uppercase tracking-wider">Analyses Completed</div>
+              <div className="font-mono text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2">10,000+</div>
+              <div className="font-sans text-[10px] sm:text-xs md:text-sm text-slate-400 uppercase tracking-wider px-2">Analyses Completed</div>
             </div>
             
             <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <Target className="w-10 h-10 text-blue-400" />
+              <div className="flex items-center justify-center mb-2 sm:mb-4">
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-blue-400" />
               </div>
-              <div className="font-mono text-4xl font-bold text-white mb-2">95%</div>
-              <div className="font-sans text-sm text-slate-400 uppercase tracking-wider">Scam Detection Rate</div>
+              <div className="font-mono text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2">95%</div>
+              <div className="font-sans text-[10px] sm:text-xs md:text-sm text-slate-400 uppercase tracking-wider px-2">Scam Detection Rate</div>
             </div>
             
             <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <Users className="w-10 h-10 text-purple-400" />
+              <div className="flex items-center justify-center mb-2 sm:mb-4">
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-purple-400" />
               </div>
-              <div className="font-mono text-4xl font-bold text-white mb-2">5,000+</div>
-              <div className="font-sans text-sm text-slate-400 uppercase tracking-wider">Users Protected</div>
+              <div className="font-mono text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2">5,000+</div>
+              <div className="font-sans text-[10px] sm:text-xs md:text-sm text-slate-400 uppercase tracking-wider px-2">Users Protected</div>
             </div>
             
             <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <Zap className="w-10 h-10 text-amber-400" />
+              <div className="flex items-center justify-center mb-2 sm:mb-4">
+                <Zap className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-amber-400" />
               </div>
-              <div className="font-mono text-4xl font-bold text-white mb-2">24/7</div>
-              <div className="font-sans text-sm text-slate-400 uppercase tracking-wider">Instant Analysis</div>
+              <div className="font-mono text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2">24/7</div>
+              <div className="font-sans text-[10px] sm:text-xs md:text-sm text-slate-400 uppercase tracking-wider px-2">Instant Analysis</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-12 sm:py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">{t('coreCapabilities')}</div>
-            <h3 className="font-mono font-semibold text-3xl tracking-tight text-slate-900" data-testid="features-title">{t('forensicGradeProtection')}</h3>
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3 sm:mb-4">{t('coreCapabilities')}</div>
+            <h3 className="font-mono font-semibold text-2xl sm:text-3xl tracking-tight text-slate-900" data-testid="features-title">{t('forensicGradeProtection')}</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-origin">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-white border-2 border-slate-200 p-6 sm:p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-origin">
               <div className="scanline"></div>
-              <Eye className="w-12 h-12 text-slate-900 mb-4" />
-              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">{t('originDetection')}</h4>
-              <p className="font-sans text-base text-slate-600 leading-relaxed">
+              <Eye className="w-10 h-10 sm:w-12 sm:h-12 text-slate-900 mb-3 sm:mb-4" />
+              <h4 className="font-mono font-medium text-lg sm:text-xl text-slate-800 mb-2 sm:mb-3">{t('originDetection')}</h4>
+              <p className="font-sans text-sm sm:text-base text-slate-600 leading-relaxed">
                 {t('originDetectionDesc')}
               </p>
             </div>
             
-            <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-scam">
+            <div className="bg-white border-2 border-slate-200 p-6 sm:p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-scam">
               <div className="scanline"></div>
-              <Shield className="w-12 h-12 text-slate-900 mb-4" />
-              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">{t('scamAssessment')}</h4>
-              <p className="font-sans text-base text-slate-600 leading-relaxed">
+              <Shield className="w-10 h-10 sm:w-12 sm:h-12 text-slate-900 mb-3 sm:mb-4" />
+              <h4 className="font-mono font-medium text-lg sm:text-xl text-slate-800 mb-2 sm:mb-3">{t('scamAssessment')}</h4>
+              <p className="font-sans text-sm sm:text-base text-slate-600 leading-relaxed">
                 {t('scamAssessmentDesc')}
               </p>
             </div>
             
-            <div className="bg-white border-2 border-slate-200 p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors" data-testid="feature-evidence">
+            <div className="bg-white border-2 border-slate-200 p-6 sm:p-8 relative overflow-hidden hover:border-blue-500/50 transition-colors sm:col-span-2 md:col-span-1" data-testid="feature-evidence">
               <div className="scanline"></div>
-              <Lock className="w-12 h-12 text-slate-900 mb-4" />
-              <h4 className="font-mono font-medium text-xl text-slate-800 mb-3">{t('evidenceIntegrity')}</h4>
-              <p className="font-sans text-base text-slate-600 leading-relaxed">
+              <Lock className="w-10 h-10 sm:w-12 sm:h-12 text-slate-900 mb-3 sm:mb-4" />
+              <h4 className="font-mono font-medium text-lg sm:text-xl text-slate-800 mb-2 sm:mb-3">{t('evidenceIntegrity')}</h4>
+              <p className="font-sans text-sm sm:text-base text-slate-600 leading-relaxed">
                 {t('evidenceIntegrityDesc')}
               </p>
             </div>
@@ -263,82 +269,82 @@ const HomePage = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-16 md:py-24 bg-white" data-testid="testimonials-section">
+      <section className="py-12 sm:py-16 md:py-24 bg-white" data-testid="testimonials-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">User Stories</div>
-            <h3 className="font-mono font-semibold text-3xl tracking-tight text-slate-900">What Our Users Say</h3>
-            <p className="font-sans text-base text-slate-600 mt-4 max-w-2xl mx-auto">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3 sm:mb-4">User Stories</div>
+            <h3 className="font-mono font-semibold text-2xl sm:text-3xl tracking-tight text-slate-900">What Our Users Say</h3>
+            <p className="font-sans text-sm sm:text-base text-slate-600 mt-3 sm:mt-4 max-w-2xl mx-auto px-4">
               Real stories from people who protected themselves with VeriSure
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {/* Testimonial 1 */}
-            <div className="bg-white border-2 border-slate-200 rounded-sm p-6 relative hover:border-blue-500/50 transition-colors">
-              <Quote className="w-8 h-8 text-blue-500 mb-4" />
-              <div className="flex items-center mb-4">
+            <div className="bg-white border-2 border-slate-200 rounded-sm p-4 sm:p-6 relative hover:border-blue-500/50 transition-colors">
+              <Quote className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 mb-3 sm:mb-4" />
+              <div className="flex items-center mb-3 sm:mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 fill-amber-400" />
                 ))}
               </div>
-              <p className="font-sans text-sm text-slate-700 leading-relaxed mb-6">
+              <p className="font-sans text-xs sm:text-sm text-slate-700 leading-relaxed mb-4 sm:mb-6">
                 "VeriSure saved me from a ₹50,000 scam! I received a WhatsApp message claiming to be from my bank. VeriSure detected it as a phishing attempt within seconds. Highly recommend!"
               </p>
               <div>
-                <div className="font-mono text-sm font-semibold text-slate-900">Priya S.</div>
-                <div className="font-sans text-xs text-slate-500">Mumbai, Maharashtra</div>
+                <div className="font-mono text-xs sm:text-sm font-semibold text-slate-900">Priya S.</div>
+                <div className="font-sans text-[10px] sm:text-xs text-slate-500">Mumbai, Maharashtra</div>
               </div>
             </div>
 
             {/* Testimonial 2 */}
-            <div className="bg-white border-2 border-slate-200 rounded-sm p-6 relative hover:border-blue-500/50 transition-colors">
-              <Quote className="w-8 h-8 text-emerald-500 mb-4" />
-              <div className="flex items-center mb-4">
+            <div className="bg-white border-2 border-slate-200 rounded-sm p-4 sm:p-6 relative hover:border-blue-500/50 transition-colors">
+              <Quote className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-500 mb-3 sm:mb-4" />
+              <div className="flex items-center mb-3 sm:mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 fill-amber-400" />
                 ))}
               </div>
-              <p className="font-sans text-sm text-slate-700 leading-relaxed mb-6">
+              <p className="font-sans text-xs sm:text-sm text-slate-700 leading-relaxed mb-4 sm:mb-6">
                 "As a journalist, I need to verify images and videos daily. VeriSure's AI detection is incredibly accurate. It's become an essential tool in my workflow for fact-checking."
               </p>
               <div>
-                <div className="font-mono text-sm font-semibold text-slate-900">Rajesh K.</div>
-                <div className="font-sans text-xs text-slate-500">Bangalore, Karnataka</div>
+                <div className="font-mono text-xs sm:text-sm font-semibold text-slate-900">Rajesh K.</div>
+                <div className="font-sans text-[10px] sm:text-xs text-slate-500">Bangalore, Karnataka</div>
               </div>
             </div>
 
             {/* Testimonial 3 */}
-            <div className="bg-white border-2 border-slate-200 rounded-sm p-6 relative hover:border-blue-500/50 transition-colors">
-              <Quote className="w-8 h-8 text-purple-500 mb-4" />
-              <div className="flex items-center mb-4">
+            <div className="bg-white border-2 border-slate-200 rounded-sm p-4 sm:p-6 relative hover:border-blue-500/50 transition-colors sm:col-span-2 md:col-span-1">
+              <Quote className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 mb-3 sm:mb-4" />
+              <div className="flex items-center mb-3 sm:mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 fill-amber-400" />
                 ))}
               </div>
-              <p className="font-sans text-sm text-slate-700 leading-relaxed mb-6">
+              <p className="font-sans text-xs sm:text-sm text-slate-700 leading-relaxed mb-4 sm:mb-6">
                 "My elderly parents were targeted by scammers multiple times. Now they use VeriSure to verify suspicious messages. It gives me peace of mind knowing they're protected."
               </p>
               <div>
-                <div className="font-mono text-sm font-semibold text-slate-900">Anita M.</div>
-                <div className="font-sans text-xs text-slate-500">Delhi NCR</div>
+                <div className="font-mono text-xs sm:text-sm font-semibold text-slate-900">Anita M.</div>
+                <div className="font-sans text-[10px] sm:text-xs text-slate-500">Delhi NCR</div>
               </div>
             </div>
           </div>
 
           {/* Additional Success Stats */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-emerald-50 border-2 border-emerald-200 rounded-sm p-6 text-center">
-              <div className="font-mono text-3xl font-bold text-emerald-700 mb-2">₹2.5 Cr+</div>
-              <div className="font-sans text-sm text-emerald-600">Total Fraud Prevented</div>
+          <div className="mt-8 sm:mt-12 md:mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-emerald-50 border-2 border-emerald-200 rounded-sm p-4 sm:p-6 text-center">
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-emerald-700 mb-1 sm:mb-2">₹2.5 Cr+</div>
+              <div className="font-sans text-xs sm:text-sm text-emerald-600">Total Fraud Prevented</div>
             </div>
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-sm p-6 text-center">
-              <div className="font-mono text-3xl font-bold text-blue-700 mb-2">50,000+</div>
-              <div className="font-sans text-sm text-blue-600">Scams Detected</div>
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-sm p-4 sm:p-6 text-center">
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-blue-700 mb-1 sm:mb-2">50,000+</div>
+              <div className="font-sans text-xs sm:text-sm text-blue-600">Scams Detected</div>
             </div>
-            <div className="bg-purple-50 border-2 border-purple-200 rounded-sm p-6 text-center">
-              <div className="font-mono text-3xl font-bold text-purple-700 mb-2">4.8/5</div>
-              <div className="font-sans text-sm text-purple-600">Average User Rating</div>
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-sm p-4 sm:p-6 text-center">
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-purple-700 mb-1 sm:mb-2">4.8/5</div>
+              <div className="font-sans text-xs sm:text-sm text-purple-600">Average User Rating</div>
             </div>
           </div>
         </div>
