@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Toast from 'react-native-toast-message';
@@ -80,12 +81,29 @@ const TextAnalysisScreen = ({ navigation }) => {
   };
 
   const handlePaste = async () => {
-    // In a real app, you'd use Clipboard from react-native
-    Toast.show({
-      type: 'info',
-      text1: 'Paste from Clipboard',
-      text2: 'Feature coming soon',
-    });
+    try {
+      const clipboardContent = await Clipboard.getString();
+      if (clipboardContent && clipboardContent.trim()) {
+        setText(clipboardContent);
+        Toast.show({
+          type: 'success',
+          text1: 'Pasted from Clipboard',
+          text2: `${clipboardContent.length} characters pasted`,
+        });
+      } else {
+        Toast.show({
+          type: 'info',
+          text1: 'Clipboard Empty',
+          text2: 'No text found in clipboard',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Paste Failed',
+        text2: 'Could not read clipboard',
+      });
+    }
   };
 
   return (
