@@ -385,7 +385,7 @@ const BatchAnalysisPage = () => {
                 {batchResults.summary.completed > 0 && (
                   <button
                     onClick={exportAllAsPDF}
-                    className="mt-6 w-full bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-6 py-3 font-mono text-sm flex items-center justify-center gap-2 transition-all"
+                    className="mt-6 w-full bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm flex items-center justify-center gap-2 transition-all"
                     data-testid="export-all-pdf-btn"
                   >
                     <Download className="w-4 h-4" />
