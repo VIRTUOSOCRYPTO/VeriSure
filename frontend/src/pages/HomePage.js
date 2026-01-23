@@ -1,36 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { Shield, Zap, Eye, Lock, AlertTriangle, CheckCircle, Upload, Layers, TrendingUp, Users, Target, Star, Quote, HelpCircle, ChevronDown } from "lucide-react";
+import { Shield, Zap, Eye, Lock, AlertTriangle, CheckCircle, Upload, Layers, TrendingUp, Users, Target, Star, Quote, HelpCircle } from "lucide-react";
 import FontSizeControl from "@/components/FontSizeControl";
 import LanguageSelector from "@/components/LanguageSelector";
+import HelpTooltip from "@/components/HelpTooltip";
 import { useLanguage } from "@/context/LanguageContext";
-import { useState } from "react";
-
-// FAQ Item Component
-const FAQItem = ({ question, answer }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  return (
-    <div 
-      className="bg-white border-2 border-slate-200 rounded-sm overflow-hidden hover:border-blue-500/50 transition-colors"
-      data-testid="faq-item"
-    >
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-6 py-4 flex items-center justify-between text-left"
-      >
-        <span className="font-mono font-medium text-base text-slate-900 pr-4">{question}</span>
-        <ChevronDown 
-          className={`w-5 h-5 text-slate-600 flex-shrink-0 transition-transform ${isOpen ? 'transform rotate-180' : ''}`}
-        />
-      </button>
-      {isOpen && (
-        <div className="px-6 pb-4 border-t border-slate-100">
-          <p className="font-sans text-sm text-slate-600 leading-relaxed pt-4">{answer}</p>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -47,6 +20,14 @@ const HomePage = () => {
               <h1 className="font-mono font-bold text-2xl text-slate-900" data-testid="app-title">{t('appTitle')}</h1>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/help')}
+                className="text-slate-600 hover:text-slate-900 p-2 rounded-sm hover:bg-slate-100 transition-all"
+                aria-label="Help Center"
+                data-testid="help-btn"
+              >
+                <HelpCircle className="w-6 h-6" />
+              </button>
               <button
                 onClick={() => navigate('/batch')}
                 className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
@@ -373,67 +354,79 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-16 md:py-24 bg-white border-t border-slate-200" data-testid="faq-section">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">Help Center</div>
-            <h3 className="font-mono font-semibold text-3xl tracking-tight text-slate-900">Frequently Asked Questions</h3>
+      {/* Common Use Cases Section */}
+      <section className="py-16 md:py-24 bg-slate-50 border-t border-slate-200" data-testid="use-cases-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-4">Real-World Applications</div>
+            <h3 className="font-mono font-semibold text-3xl tracking-tight text-slate-900">Protect Yourself From</h3>
             <p className="font-sans text-base text-slate-600 mt-4">
-              Quick answers to common questions about VeriSure
+              VeriSure helps you verify suspicious content in these common scenarios
             </p>
           </div>
-          
-          <div className="space-y-4">
-            <FAQItem 
-              question="How accurate is VeriSure's scam detection?"
-              answer="VeriSure achieves a 95% accuracy rate in detecting scams and AI-generated content. Our hybrid system combines advanced AI models with forensic analysis techniques for maximum reliability."
-            />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <div className="bg-white border-2 border-slate-200 rounded-sm p-6 hover:border-amber-500/50 transition-colors">
+              <div className="flex items-start gap-4">
+                <AlertTriangle className="w-8 h-8 text-amber-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-mono font-semibold text-lg text-slate-900 mb-2">Suspicious WhatsApp Messages</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">Verify messages claiming to be from police, banks, delivery services, or family members in distress. Detect fake authority threats and urgent payment demands.</p>
+                </div>
+              </div>
+            </div>
             
-            <FAQItem 
-              question="Is my data secure? Do you store my uploads?"
-              answer="No, we do not store your uploaded files. All analysis is ephemeral - reports are generated with cryptographic hashes for evidence integrity, but original content is never retained on our servers. Your privacy is our priority."
-            />
+            <div className="bg-white border-2 border-slate-200 rounded-sm p-6 hover:border-blue-500/50 transition-colors">
+              <div className="flex items-start gap-4">
+                <Eye className="w-8 h-8 text-blue-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-mono font-semibold text-lg text-slate-900 mb-2">Fake News & Deepfakes</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">Detect AI-generated images, deepfake videos, and manipulated audio clips spreading misinformation. Verify celebrity endorsements and viral content.</p>
+                </div>
+              </div>
+            </div>
             
-            <FAQItem 
-              question="What file types are supported?"
-              answer="VeriSure supports images (JPG, PNG, WebP), videos (MP4, MOV, AVI), audio files (MP3, WAV), text messages, and URLs. We analyze multiple content types using specialized detection methods for each format."
-            />
+            <div className="bg-white border-2 border-slate-200 rounded-sm p-6 hover:border-green-500/50 transition-colors">
+              <div className="flex items-start gap-4">
+                <Lock className="w-8 h-8 text-green-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-mono font-semibold text-lg text-slate-900 mb-2">Online Shopping & Phishing Links</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">Verify suspicious URLs, product offers, and discount codes before clicking. Protect yourself from fake e-commerce sites and payment scams.</p>
+                </div>
+              </div>
+            </div>
             
-            <FAQItem 
-              question="How long does analysis take?"
-              answer="Most analyses complete instantly (under 5 seconds) for images and text. Videos and audio files may take 30-60 seconds depending on length. You'll see real-time progress updates during processing."
-            />
-            
-            <FAQItem 
-              question="Can VeriSure detect deepfakes?"
-              answer="Yes! Our AI models are trained to detect deepfake videos and voice clones. We analyze audio patterns, facial movements, and metadata to identify manipulated content with high accuracy."
-            />
-            
-            <FAQItem 
-              question="Do I need technical knowledge to use VeriSure?"
-              answer="Not at all! VeriSure is designed for everyone. Simply upload your content or paste a URL, and we'll provide a clear risk assessment with actionable recommendations. No technical expertise required."
-            />
-            
-            <FAQItem 
-              question="What makes VeriSure different from other tools?"
-              answer="VeriSure combines AI-powered detection with forensic-grade analysis specifically designed for India-specific scam patterns. We detect fake police threats, banking fraud, UPI scams, and emotional manipulation tactics common in social engineering attacks."
-            />
-            
-            <FAQItem 
-              question="Can I analyze multiple files at once?"
-              answer="Yes! Our Batch Analysis feature lets you upload up to 10 files simultaneously. Perfect for reviewing multiple suspicious messages or images in one go. Results are displayed side-by-side for easy comparison."
-            />
+            <div className="bg-white border-2 border-slate-200 rounded-sm p-6 hover:border-purple-500/50 transition-colors">
+              <div className="flex items-start gap-4">
+                <Users className="w-8 h-8 text-purple-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-mono font-semibold text-lg text-slate-900 mb-2">Job & Investment Scams</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">Check viral posts, job offers, and investment opportunities for fraud. Detect work-from-home scams, fake trading schemes, and guaranteed profit claims.</p>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <div className="mt-12 text-center">
-            <p className="font-mono text-sm text-slate-600 mb-4">Still have questions?</p>
-            <button
-              onClick={() => navigate('/analyze')}
-              className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-3 font-mono text-sm uppercase tracking-wider transition-all"
-            >
-              Try VeriSure Now
-            </button>
+
+          {/* CTA */}
+          <div className="text-center">
+            <p className="font-mono text-sm text-slate-600 mb-4">Need more information?</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => navigate('/analyze')}
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-3 font-mono text-sm uppercase tracking-wider transition-all"
+                data-testid="cta-analyze-btn"
+              >
+                Start Free Analysis
+              </button>
+              <button
+                onClick={() => navigate('/help')}
+                className="bg-white border-2 border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-8 py-3 font-mono text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                data-testid="cta-help-btn"
+              >
+                <HelpCircle className="w-5 h-5" />
+                Visit Help Center
+              </button>
+            </div>
           </div>
         </div>
       </section>
