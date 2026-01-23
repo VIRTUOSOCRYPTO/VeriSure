@@ -159,3 +159,15 @@ websockets==15.0.1
 wrapt==2.0.1
 yarl==1.22.0
 zipp==3.23.0
+
+
+# Phase 1: ML & Advanced Forensics Dependencies
+torch==2.1.2
+torchvision==0.16.2
+transformers==4.36.0
+sentence-transformers==2.7.0
+timm==0.9.2
+chromadb==0.4.24
+opencv-python==4.8.0.76
+scikit-image==0.21.0
+xgboost==1.7.6
