@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,13 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Toast from 'react-native-toast-message';
 import DocumentPicker from 'react-native-document-picker';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useOffline } from '../../contexts/OfflineContext';
 import apiService from '../../services/apiService';
 import { ANALYSIS_CONFIG } from '../../config/constants';
+
+const audioRecorderPlayer = new AudioRecorderPlayer();
 
 const AudioAnalysisScreen = ({ navigation }) => {
   const { colors } = useTheme();
@@ -23,6 +26,9 @@ const AudioAnalysisScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState('00:00');
+  const [recordedAudioPath, setRecordedAudioPath] = useState(null);
+  const recordingTimerRef = useRef(null);
 
   const handlePickAudio = async () => {
     try {
@@ -51,13 +57,72 @@ const AudioAnalysisScreen = ({ navigation }) => {
     }
   };
 
-  const handleRecord = () => {
-    // In a real implementation, use react-native-audio-recorder-player
-    Toast.show({
-      type: 'info',
-      text1: 'Recording Feature',
-      text2: 'Audio recording will be available in the next update',
-    });
+  const handleRecord = async () => {
+    if (isRecording) {
+      // Stop recording
+      try {
+        const result = await audioRecorderPlayer.stopRecorder();
+        audioRecorderPlayer.removeRecordBackListener();
+        setIsRecording(false);
+        setRecordedAudioPath(result);
+        
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+        }
+
+        // Create audio object from recorded file
+        const fileName = result.split('/').pop();
+        setSelectedAudio({
+          uri: result,
+          name: fileName,
+          type: 'audio/m4a',
+          size: 0, // Will be calculated on upload
+        });
+
+        Toast.show({
+          type: 'success',
+          text1: 'Recording Saved',
+          text2: 'Your audio has been recorded successfully',
+        });
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Recording Failed',
+          text2: error.message,
+        });
+        setIsRecording(false);
+      }
+    } else {
+      // Start recording
+      try {
+        const path = Platform.select({
+          ios: 'recording.m4a',
+          android: 'recording.mp4',
+        });
+        
+        await audioRecorderPlayer.startRecorder(path);
+        audioRecorderPlayer.addRecordBackListener((e) => {
+          const minutes = Math.floor(e.currentPosition / 60000);
+          const seconds = Math.floor((e.currentPosition % 60000) / 1000);
+          setRecordingTime(
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+          );
+        });
+        
+        setIsRecording(true);
+        Toast.show({
+          type: 'info',
+          text1: 'Recording Started',
+          text2: 'Tap the button again to stop',
+        });
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Recording Failed',
+          text2: error.message,
+        });
+      }
+    }
   };
 
   const handleAnalyze = async () => {
@@ -128,17 +193,23 @@ const AudioAnalysisScreen = ({ navigation }) => {
           {!selectedAudio ? (
             <View style={styles.uploadSection}>
               <TouchableOpacity
-                style={[styles.recordButton, { backgroundColor: colors.error + '20', borderColor: colors.error }]}
+                style={[styles.recordButton, { backgroundColor: isRecording ? colors.error : colors.error + '20', borderColor: colors.error }]}
                 onPress={handleRecord}
                 data-testid="record-audio-button"
               >
-                <View style={[styles.recordIcon, { backgroundColor: colors.error }]}>
-                  <Icon name="microphone" size={32} color="#FFFFFF" />
+                <View style={[styles.recordIcon, { backgroundColor: isRecording ? '#FFFFFF' : colors.error }]}>
+                  <Icon name={isRecording ? 'stop' : 'microphone'} size={32} color={isRecording ? colors.error : '#FFFFFF'} />
                 </View>
-                <Text style={[styles.recordButtonText, { color: colors.text }]}>Record Audio</Text>
-                <Text style={[styles.recordButtonSubtext, { color: colors.textSecondary }]}>
-                  Record voice message
+                <Text style={[styles.recordButtonText, { color: colors.text }]}>
+                  {isRecording ? 'Stop Recording' : 'Record Audio'}
                 </Text>
+                {isRecording ? (
+                  <Text style={[styles.recordingTime, { color: colors.error }]}>{recordingTime}</Text>
+                ) : (
+                  <Text style={[styles.recordButtonSubtext, { color: colors.textSecondary }]}>
+                    Record voice message
+                  </Text>
+                )}
               </TouchableOpacity>
 
               <View style={styles.divider}>
@@ -289,6 +360,11 @@ const styles = StyleSheet.create({
   recordButtonSubtext: {
     fontSize: 14,
     marginTop: 4,
+  },
+  recordingTime: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 8,
   },
   divider: {
     flexDirection: 'row',
