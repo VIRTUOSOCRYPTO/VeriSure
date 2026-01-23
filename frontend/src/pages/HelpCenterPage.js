@@ -2,11 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, ChevronDown, ChevronUp, BookOpen, Video, MessageCircle,
-  Shield, Image, FileText, Mic, Film, Users, TrendingUp
+  Shield, FileText, Users, TrendingUp, ArrowLeft
 } from 'lucide-react';
+import FontSizeControl from "@/components/FontSizeControl";
+import LanguageSelector from "@/components/LanguageSelector";
+import { useLanguage } from "@/context/LanguageContext";
 
 const HelpCenterPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSection, setExpandedSection] = useState(null);
 
@@ -83,7 +87,7 @@ const HelpCenterPage = () => {
     },
     {
       title: 'Technical Details',
-      icon: <Film className="w-5 h-5" />,
+      icon: <Shield className="w-5 h-5" />,
       questions: [
         {
           q: 'How does image forensics work?',
@@ -165,32 +169,72 @@ const HelpCenterPage = () => {
     : faqSections;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+    <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div 
+              className="flex items-center space-x-3 cursor-pointer"
+              onClick={() => navigate('/')}
+              data-testid="home-link"
+            >
+              <Shield className="w-8 h-8 text-slate-900" />
+              <h1 className="font-mono font-bold text-2xl text-slate-900">{t('appTitle')}</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/history')}
+                className="bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                data-testid="history-btn"
+              >
+                History
+              </button>
+              <LanguageSelector />
+              <FontSizeControl />
+              <button
+                onClick={() => navigate('/analyze')}
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                data-testid="analyze-btn"
+              >
+                {t('analyzeNow')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Page Title */}
+        <div className="mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="text-purple-600 hover:text-purple-700 mb-4 flex items-center gap-2"
+            className="text-slate-600 hover:text-slate-900 mb-4 flex items-center gap-2 font-mono text-sm uppercase tracking-wider transition-all"
+            data-testid="back-btn"
           >
-            ← Back
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Help Center</h1>
-          <p className="text-gray-600 mt-2">Find answers to common questions</p>
+          <h2 className="font-mono text-3xl font-bold text-slate-900 mb-2">
+            Help Center
+          </h2>
+          <p className="text-slate-600 font-mono text-sm">
+            Find answers to common questions
+          </p>
         </div>
-      </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search */}
         <div className="mb-8">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
               placeholder="Search for help..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none text-lg"
+              className="w-full pl-12 pr-4 py-4 rounded-sm border-2 border-slate-200 focus:border-slate-900 focus:outline-none text-base font-mono bg-white"
+              data-testid="search-input"
             />
           </div>
         </div>
@@ -206,31 +250,32 @@ const HelpCenterPage = () => {
         {/* FAQ Sections */}
         <div className="space-y-4">
           {filteredSections.map((section, sectionIdx) => (
-            <div key={sectionIdx} className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div key={sectionIdx} className="bg-white border-2 border-slate-200 rounded-sm overflow-hidden hover:border-slate-300 transition-colors">
               <button
                 onClick={() => toggleSection(sectionIdx)}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                data-testid={`faq-section-${sectionIdx}`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="text-purple-600">{section.icon}</div>
-                  <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
-                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                  <div className="text-slate-900">{section.icon}</div>
+                  <h2 className="text-xl font-bold text-slate-900 font-mono">{section.title}</h2>
+                  <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-sm font-mono">
                     {section.questions.length}
                   </span>
                 </div>
                 {expandedSection === sectionIdx ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                  <ChevronUp className="w-5 h-5 text-slate-400" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                  <ChevronDown className="w-5 h-5 text-slate-400" />
                 )}
               </button>
 
               {expandedSection === sectionIdx && (
-                <div className="px-6 pb-6 space-y-4">
+                <div className="px-6 pb-6 space-y-4 bg-slate-50">
                   {section.questions.map((item, qIdx) => (
-                    <div key={qIdx} className="border-l-4 border-purple-500 pl-4 py-2">
-                      <h3 className="font-semibold text-gray-900 mb-2">{item.q}</h3>
-                      <p className="text-gray-600 leading-relaxed">{item.a}</p>
+                    <div key={qIdx} className="border-l-4 border-slate-900 pl-4 py-2" data-testid={`faq-item-${qIdx}`}>
+                      <h3 className="font-semibold text-slate-900 mb-2 font-mono">{item.q}</h3>
+                      <p className="text-slate-600 leading-relaxed font-sans text-sm">{item.a}</p>
                     </div>
                   ))}
                 </div>
@@ -241,11 +286,13 @@ const HelpCenterPage = () => {
 
         {/* No results */}
         {filteredSections.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No results found for "{searchQuery}"</p>
+          <div className="text-center py-12 bg-white border-2 border-slate-200 rounded-sm">
+            <Search className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-600 text-lg font-mono mb-4">No results found for "{searchQuery}"</p>
             <button
               onClick={() => setSearchQuery('')}
-              className="mt-4 text-purple-600 hover:text-purple-700 font-medium"
+              className="text-slate-900 hover:text-slate-700 font-mono text-sm uppercase tracking-wider"
+              data-testid="clear-search-btn"
             >
               Clear search
             </button>
@@ -253,18 +300,19 @@ const HelpCenterPage = () => {
         )}
 
         {/* Contact Support */}
-        <div className="mt-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-lg p-8 text-white text-center">
+        <div className="mt-8 bg-slate-900 border-2 border-slate-900 rounded-sm p-8 text-white text-center">
           <MessageCircle className="w-12 h-12 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold mb-2">Still need help?</h3>
-          <p className="mb-4 text-purple-100">Our support team is here to assist you 24/7</p>
+          <h3 className="text-2xl font-bold mb-2 font-mono">Still need help?</h3>
+          <p className="mb-4 text-slate-300 font-sans text-sm">Our support team is here to assist you 24/7</p>
           <a
             href="mailto:support@verisure.com"
-            className="inline-block px-6 py-3 bg-white text-purple-600 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+            className="inline-block px-6 py-3 bg-white text-slate-900 rounded-sm font-mono text-sm uppercase tracking-wider hover:bg-slate-100 transition-colors"
+            data-testid="contact-support-btn"
           >
             Contact Support
           </a>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
@@ -272,10 +320,10 @@ const HelpCenterPage = () => {
 const QuickLink = ({ icon, text, href }) => (
   <a
     href={href}
-    className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg shadow hover:shadow-lg transition-shadow text-center"
+    className="flex flex-col items-center gap-2 p-4 bg-white border-2 border-slate-200 rounded-sm hover:border-slate-300 transition-all text-center"
   >
-    <div className="text-purple-600">{icon}</div>
-    <span className="text-sm font-medium text-gray-700">{text}</span>
+    <div className="text-slate-900">{icon}</div>
+    <span className="text-sm font-medium text-slate-700 font-mono">{text}</span>
   </a>
 );
 
