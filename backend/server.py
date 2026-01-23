@@ -34,6 +34,12 @@ from celery.result import AsyncResult
 from scam_intelligence import ScamIntelligence
 from threat_intelligence import ThreatIntelligence
 
+# Phase 1: ML & Advanced Forensics imports
+from advanced_forensics import AdvancedForensicAnalyzer
+from ml_models import image_auth_model, scam_text_classifier, embedding_model, voice_detector
+from vector_store import vector_store
+from pattern_learning import PatternLearningSystem
+
 # Phase 6: Security & Compliance imports
 from models import (
     UserRegistration, UserLogin, TokenResponse, RefreshTokenRequest,
@@ -58,6 +64,11 @@ logger = logging.getLogger(__name__)
 
 # Initialize forensic analyzer
 forensic_analyzer = ForensicAnalyzer()
+
+# Phase 1: Initialize advanced forensics and ML systems
+advanced_forensics = AdvancedForensicAnalyzer()
+pattern_learning = None  # Initialized after DB connection
+logger.info("✅ Phase 1: Advanced forensics and ML models loaded")
 
 # Initialize cache manager
 cache_manager = CacheManager(
@@ -118,6 +129,10 @@ logger.info("✅ Security systems initialized (JWT, Audit, GDPR)")
 scam_intelligence = ScamIntelligence(db)
 threat_intelligence = ThreatIntelligence(db)
 logger.info("✅ Intelligence systems initialized (Scam Intelligence, Threat Intel)")
+
+# Phase 1: Initialize pattern learning system
+pattern_learning = PatternLearningSystem(db, vector_store, embedding_model)
+logger.info("✅ Pattern learning system initialized")
 
 # Create indexes for performance
 async def create_indexes():
@@ -720,6 +735,81 @@ async def analyze_content(
         
         logger.info(f"Forensic analysis complete: {len(forensic_result.get('forensic_indicators', {}).get('human_signals', []))} human signals, {len(forensic_result.get('forensic_indicators', {}).get('ai_signals', []))} AI signals")
         
+        # PHASE 1 ENHANCEMENT: STEP 1.5 - ADVANCED FORENSICS & ML MODELS
+        advanced_forensic_result = {}
+        ml_predictions = {}
+        vector_matches = []
+        
+        if analysis_type == "image":
+            # Run advanced image forensics
+            logger.info("Running advanced image forensics (ELA, noise, JPEG ghost, copy-move)")
+            try:
+                advanced_forensic_result = advanced_forensics.analyze_advanced_forensics(content_bytes)
+                
+                # Add advanced forensic indicators to evidence
+                if advanced_forensic_result.get('manipulation_indicators'):
+                    forensic_result['advanced_forensics'] = advanced_forensic_result
+                    
+                    # Add to forensic indicators
+                    for indicator in advanced_forensic_result['manipulation_indicators']:
+                        if 'ELA' in indicator or 'NOISE' in indicator:
+                            forensic_result['forensic_indicators']['ai_signals'].append(indicator)
+                        elif 'JPEG' in indicator or 'COPY-MOVE' in indicator:
+                            forensic_result['forensic_indicators']['manipulation_signals'].append(indicator)
+                
+                logger.info(f"Advanced forensics: composite score = {advanced_forensic_result.get('composite_score', 0):.2f}")
+            except Exception as e:
+                logger.error(f"Advanced forensics error: {str(e)}")
+            
+            # Run ML image authenticity model
+            logger.info("Running ML image authenticity model")
+            try:
+                image = Image.open(BytesIO(content_bytes))
+                ml_predictions['image_authenticity'] = image_auth_model.predict(image)
+                
+                # Add ML prediction to indicators
+                if ml_predictions['image_authenticity'].get('ai_probability', 0) > 0.7:
+                    forensic_result['forensic_indicators']['ai_signals'].append(
+                        f"[ML MODEL] Image authenticity: {ml_predictions['image_authenticity']['classification']} "
+                        f"(confidence: {ml_predictions['image_authenticity']['confidence']})"
+                    )
+                
+                logger.info(f"ML image auth: {ml_predictions['image_authenticity']['classification']}")
+            except Exception as e:
+                logger.error(f"ML image model error: {str(e)}")
+        
+        # Run ML text classifier for scam detection (for all content with text)
+        if content_text and len(content_text) > 10:
+            logger.info("Running ML scam text classifier")
+            try:
+                ml_predictions['text_classification'] = scam_text_classifier.predict(content_text)
+                
+                logger.info(f"ML text classifier: {ml_predictions['text_classification']['scam_type']} "
+                           f"(prob: {ml_predictions['text_classification']['scam_probability']:.2f})")
+            except Exception as e:
+                logger.error(f"ML text classifier error: {str(e)}")
+            
+            # Search vector database for similar scam patterns
+            logger.info("Searching vector database for similar scam patterns")
+            try:
+                vector_matches = vector_store.search_by_text(
+                    content_text,
+                    embedding_model,
+                    top_k=5,
+                    min_similarity=0.75
+                )
+                
+                if vector_matches:
+                    logger.info(f"Found {len(vector_matches)} similar scam patterns in vector DB")
+                    # Add to scam patterns
+                    for match in vector_matches[:3]:  # Top 3 matches
+                        forensic_result['forensic_indicators']['manipulation_signals'].append(
+                            f"[VECTOR DB] Similar to known scam: {match['metadata'].get('scam_type', 'unknown')} "
+                            f"(similarity: {match['similarity']:.2f})"
+                        )
+            except Exception as e:
+                logger.error(f"Vector search error: {str(e)}")
+        
         # STEP 2: AI OPINION AS SECONDARY SIGNAL
         logger.info("Requesting AI opinion (secondary signal)")
         claude_result = {}
@@ -798,9 +888,35 @@ async def analyze_content(
             indicators=all_indicators[:6] if all_indicators else [classification_reason]  # Show more indicators
         )
         
-        # IMPROVED: Determine scam risk level with better accuracy
+        # IMPROVED: Determine scam risk level with better accuracy using ML predictions
         risk_level = "low"
         risk_score = 0
+        
+        # PHASE 1: Incorporate ML text classifier results
+        if ml_predictions.get('text_classification'):
+            ml_text = ml_predictions['text_classification']
+            if ml_text.get('is_scam') and ml_text.get('scam_probability', 0) > 0.7:
+                risk_score += 4  # ML high confidence scam
+                logger.info(f"ML classifier indicates high scam probability: {ml_text['scam_probability']:.2f}")
+            elif ml_text.get('scam_probability', 0) > 0.5:
+                risk_score += 2  # ML medium confidence
+        
+        # PHASE 1: Incorporate vector DB matches
+        if vector_matches:
+            # High similarity to known scams increases risk
+            avg_similarity = sum(m['similarity'] for m in vector_matches) / len(vector_matches)
+            if avg_similarity > 0.85:
+                risk_score += 3
+            elif avg_similarity > 0.75:
+                risk_score += 2
+        
+        # PHASE 1: Incorporate advanced forensics for images
+        if advanced_forensic_result:
+            composite_score = advanced_forensic_result.get('composite_score', 0)
+            if composite_score > 0.7:
+                risk_score += 3  # High manipulation detected
+            elif composite_score > 0.5:
+                risk_score += 2  # Medium manipulation
         
         # Calculate risk score based on patterns and flags
         critical_keywords = ["OTP", "password", "PIN", "CVV", "card number", "account number"]
@@ -833,19 +949,19 @@ async def analyze_content(
             if any(danger in flag for danger in dangerous_flags):
                 risk_score += 2
         
-        # Determine final risk level based on total score
-        if risk_score >= 8:
+        # Determine final risk level based on total score (now includes ML + vector DB + advanced forensics)
+        if risk_score >= 10:
             risk_level = "high"
-        elif risk_score >= 5 or len(scam_patterns) >= 3:
+        elif risk_score >= 7 or len(scam_patterns) >= 3:
             risk_level = "high"
-        elif risk_score >= 3 or len(scam_patterns) >= 2:
+        elif risk_score >= 4 or len(scam_patterns) >= 2:
             risk_level = "medium"
         elif len(scam_patterns) >= 1:
             risk_level = "medium"
         else:
             risk_level = "low"
         
-        logger.info(f"Scam risk assessment: {risk_level} (score: {risk_score}, patterns: {len(scam_patterns)}, flags: {len(behavioral_flags)})")
+        logger.info(f"Scam risk assessment (Phase 1 enhanced): {risk_level} (score: {risk_score}, patterns: {len(scam_patterns)}, ML: {bool(ml_predictions)}, vector matches: {len(vector_matches)})")
         
         scam_assessment = ScamAssessment(
             risk_level=risk_level,
@@ -1887,6 +2003,144 @@ async def check_url_reputation(
         raise HTTPException(status_code=500, detail=f"URL check failed: {str(e)}")
 
 # ========== END PHASE 4 ENDPOINTS ==========
+
+# ========== PHASE 1: ML & ADVANCED FORENSICS ENDPOINTS ==========
+
+@api_router.get("/ml/vector-store/stats")
+@limiter.limit("30/minute")
+async def get_vector_store_stats(request: Request):
+    """
+    Get vector store statistics
+    Phase 1 - Vector Database & Pattern Learning
+    """
+    try:
+        stats = vector_store.get_collection_stats()
+        learning_stats = pattern_learning.get_learning_stats()
+        
+        return {
+            "vector_store": stats,
+            "pattern_learning": learning_stats,
+            "status": "active"
+        }
+    except Exception as e:
+        logger.error(f"Vector store stats error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/ml/pattern-learning/batch-learn")
+@limiter.limit("5/hour")
+async def batch_learn_patterns(
+    request: Request,
+    min_report_count: int = 3
+):
+    """
+    Batch learn patterns from verified scam reports
+    Phase 1 - Automated Pattern Learning
+    Admin endpoint (requires high rate limit)
+    """
+    try:
+        result = await pattern_learning.batch_learn_from_verified_reports(min_report_count)
+        return result
+    except Exception as e:
+        logger.error(f"Batch learning error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/ml/pattern-learning/emerging-trends")
+@limiter.limit("10/minute")
+async def get_emerging_trends(
+    request: Request,
+    days: int = 7
+):
+    """
+    Detect emerging scam trends using clustering
+    Phase 1 - Trend Detection
+    """
+    try:
+        trends = await pattern_learning.detect_emerging_trends(days)
+        return {
+            "trends": trends,
+            "analysis_period_days": days,
+            "trends_detected": len(trends)
+        }
+    except Exception as e:
+        logger.error(f"Trend detection error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/ml/search-similar-scams")
+@limiter.limit("30/minute")
+async def search_similar_scams(
+    request: Request,
+    text: str = Form(...),
+    top_k: int = Form(5),
+    min_similarity: float = Form(0.75)
+):
+    """
+    Search for similar scam patterns using semantic similarity
+    Phase 1 - Vector Search
+    """
+    try:
+        matches = vector_store.search_by_text(
+            text,
+            embedding_model,
+            top_k=top_k,
+            min_similarity=min_similarity
+        )
+        
+        return {
+            "query": text[:100] + "..." if len(text) > 100 else text,
+            "matches": matches,
+            "count": len(matches)
+        }
+    except Exception as e:
+        logger.error(f"Similar scam search error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/ml/models/status")
+@limiter.limit("30/minute")
+async def get_ml_models_status(request: Request):
+    """
+    Get status of all ML models
+    Phase 1 - ML Models Health Check
+    """
+    try:
+        return {
+            "image_authenticity_model": {
+                "loaded": image_auth_model.model is not None,
+                "model_type": "EfficientNet-B0",
+                "status": "ready" if image_auth_model.model else "not_loaded"
+            },
+            "text_classifier": {
+                "loaded": scam_text_classifier.model is not None,
+                "model_type": "DistilBERT",
+                "categories": len(scam_text_classifier.scam_categories),
+                "status": "ready" if scam_text_classifier.model else "not_loaded"
+            },
+            "embedding_model": {
+                "loaded": embedding_model.model is not None,
+                "model_type": "all-MiniLM-L6-v2",
+                "dimension": 384,
+                "status": "ready" if embedding_model.model else "not_loaded"
+            },
+            "voice_detector": {
+                "loaded": voice_detector.model is not None,
+                "model_type": "Audio Features + Classifier",
+                "status": "ready" if voice_detector.model else "not_trained"
+            },
+            "advanced_forensics": {
+                "loaded": True,
+                "features": ["ELA", "Noise Analysis", "JPEG Ghost", "Copy-Move Detection"],
+                "status": "ready"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Model status error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ========== END PHASE 1 ENDPOINTS ==========
 
 # Include routers in the main app
 app.include_router(api_router)
