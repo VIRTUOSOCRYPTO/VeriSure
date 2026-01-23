@@ -114,19 +114,19 @@ const PublicScamTrendsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
-          <Activity className="w-16 h-16 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-lg text-gray-700">Loading intelligence data...</p>
+          <Activity className="w-16 h-16 text-slate-900 animate-spin mx-auto mb-4" />
+          <p className="text-lg text-slate-700">Loading intelligence data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+    <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <div className="bg-white border-b border-purple-100">
+      <div className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -140,11 +140,11 @@ const PublicScamTrendsPage = () => {
                 Back
               </Button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                  <TrendingUp className="w-8 h-8 text-purple-600" />
+                <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
+                  <TrendingUp className="w-8 h-8 text-slate-900" />
                   Scam Intelligence Hub
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-slate-600 mt-1">
                   Real-time scam trends and threat intelligence for India
                 </p>
               </div>
@@ -161,10 +161,10 @@ const PublicScamTrendsPage = () => {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Reports</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.total_reports}</p>
+                    <p className="text-sm text-slate-600">Total Reports</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.total_reports}</p>
                   </div>
-                  <Database className="w-10 h-10 text-purple-600" />
+                  <Database className="w-10 h-10 text-slate-900" />
                 </div>
               </CardContent>
             </Card>
@@ -173,10 +173,10 @@ const PublicScamTrendsPage = () => {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Verified Scams</p>
-                    <p className="text-3xl font-bold text-green-600">{stats.verified_reports}</p>
+                    <p className="text-sm text-slate-600">Verified Scams</p>
+                    <p className="text-3xl font-bold text-emerald-600">{stats.verified_reports}</p>
                   </div>
-                  <CheckCircle className="w-10 h-10 text-green-600" />
+                  <CheckCircle className="w-10 h-10 text-emerald-600" />
                 </div>
               </CardContent>
             </Card>
@@ -185,10 +185,10 @@ const PublicScamTrendsPage = () => {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Pending Review</p>
-                    <p className="text-3xl font-bold text-yellow-600">{stats.pending_reports}</p>
+                    <p className="text-sm text-slate-600">Pending Review</p>
+                    <p className="text-3xl font-bold text-amber-600">{stats.pending_reports}</p>
                   </div>
-                  <Clock className="w-10 h-10 text-yellow-600" />
+                  <Clock className="w-10 h-10 text-amber-600" />
                 </div>
               </CardContent>
             </Card>
@@ -197,10 +197,10 @@ const PublicScamTrendsPage = () => {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Last 7 Days</p>
-                    <p className="text-3xl font-bold text-blue-600">{stats.recent_reports_7days}</p>
+                    <p className="text-sm text-slate-600">Last 7 Days</p>
+                    <p className="text-3xl font-bold text-slate-700">{stats.recent_reports_7days}</p>
                   </div>
-                  <Activity className="w-10 h-10 text-blue-600" />
+                  <Activity className="w-10 h-10 text-slate-700" />
                 </div>
               </CardContent>
             </Card>
@@ -242,7 +242,7 @@ const PublicScamTrendsPage = () => {
                 {searchResults.map((scam, idx) => (
                   <div
                     key={idx}
-                    className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 transition-colors"
+                    className="p-4 border border-slate-200 rounded-lg hover:border-slate-400 transition-colors"
                     data-testid={`search-result-${idx}`}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -253,13 +253,13 @@ const PublicScamTrendsPage = () => {
                         <Badge variant="outline">{scam.scam_type}</Badge>
                         {getStatusIcon(scam.status)}
                       </div>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-slate-500">
                         {new Date(scam.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-700">{scam.content}</p>
+                    <p className="text-sm text-slate-700">{scam.content}</p>
                     {scam.report_count > 1 && (
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-slate-500 mt-2">
                         <Users className="w-3 h-3 inline mr-1" />
                         Reported {scam.report_count} times
                       </p>
@@ -276,7 +276,7 @@ const PublicScamTrendsPage = () => {
           <Card data-testid="trending-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-orange-600" />
+                <TrendingUp className="w-5 h-5 text-slate-700" />
                 Trending This Week
               </CardTitle>
               <CardDescription>
@@ -285,22 +285,22 @@ const PublicScamTrendsPage = () => {
             </CardHeader>
             <CardContent>
               {trending.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No trending patterns yet</p>
+                <p className="text-slate-500 text-center py-8">No trending patterns yet</p>
               ) : (
                 <div className="space-y-3">
                   {trending.map((pattern, idx) => (
                     <div
                       key={idx}
-                      className="p-3 bg-orange-50 border border-orange-200 rounded-lg"
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-lg"
                       data-testid={`trending-pattern-${idx}`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-gray-900">{pattern.pattern}</span>
-                        <Badge className="bg-orange-100 text-orange-800">
+                        <span className="font-semibold text-slate-900">{pattern.pattern}</span>
+                        <Badge className="bg-slate-100 text-slate-800">
                           {pattern.count} reports
                         </Badge>
                       </div>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-slate-600">
                         Type: {pattern.scam_type || 'Various'}
                       </p>
                     </div>
@@ -314,7 +314,7 @@ const PublicScamTrendsPage = () => {
           <Card data-testid="recent-scams-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-green-600" />
+                <Shield className="w-5 h-5 text-slate-700" />
                 Recent Verified Scams
               </CardTitle>
               <CardDescription>
@@ -323,25 +323,25 @@ const PublicScamTrendsPage = () => {
             </CardHeader>
             <CardContent>
               {recentScams.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No verified scams yet</p>
+                <p className="text-slate-500 text-center py-8">No verified scams yet</p>
               ) : (
                 <div className="space-y-3">
                   {recentScams.map((scam, idx) => (
                     <div
                       key={idx}
-                      className="p-3 border border-gray-200 rounded-lg hover:border-green-300 transition-colors"
+                      className="p-3 border border-slate-200 rounded-lg hover:border-slate-400 transition-colors"
                       data-testid={`recent-scam-${idx}`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <Badge className={getSeverityColor(scam.severity)}>
                           {scam.severity}
                         </Badge>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-slate-500">
                           {new Date(scam.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 line-clamp-2">{scam.content}</p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                      <p className="text-sm text-slate-700 line-clamp-2">{scam.content}</p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
                         <span className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
                           {scam.report_count} reports
@@ -371,7 +371,7 @@ const PublicScamTrendsPage = () => {
           </CardHeader>
           <CardContent>
             {threats.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No active threats</p>
+              <p className="text-slate-500 text-center py-8">No active threats</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {threats.map((threat, idx) => (
@@ -385,13 +385,13 @@ const PublicScamTrendsPage = () => {
                         <Badge className="bg-red-100 text-red-800 mb-2">
                           {threat.severity || 'high'}
                         </Badge>
-                        <p className="font-semibold text-gray-900">{threat.scam_type}</p>
+                        <p className="font-semibold text-slate-900">{threat.scam_type}</p>
                       </div>
-                      <span className="text-xs text-gray-500">{threat.source}</span>
+                      <span className="text-xs text-slate-500">{threat.source}</span>
                     </div>
-                    <p className="text-sm text-gray-700 line-clamp-3">{threat.content}</p>
+                    <p className="text-sm text-slate-700 line-clamp-3">{threat.content}</p>
                     {threat.report_count && (
-                      <p className="text-xs text-gray-600 mt-2">
+                      <p className="text-xs text-slate-600 mt-2">
                         <Users className="w-3 h-3 inline mr-1" />
                         {threat.report_count} reports
                       </p>
@@ -414,17 +414,17 @@ const PublicScamTrendsPage = () => {
               <div className="space-y-3">
                 {stats.scam_type_breakdown.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between" data-testid={`type-${idx}`}>
-                    <span className="text-sm font-medium text-gray-700">{item.type}</span>
+                    <span className="text-sm font-medium text-slate-700">{item.type}</span>
                     <div className="flex items-center gap-3">
-                      <div className="w-48 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-48 h-2 bg-slate-200 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-purple-600"
+                          className="h-full bg-slate-900"
                           style={{
                             width: `${(item.count / stats.total_reports) * 100}%`
                           }}
                         />
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 w-12 text-right">
+                      <span className="text-sm font-semibold text-slate-900 w-12 text-right">
                         {item.count}
                       </span>
                     </div>
@@ -436,7 +436,7 @@ const PublicScamTrendsPage = () => {
         )}
 
         {/* Report Scam CTA */}
-        <Card className="mt-8 bg-gradient-to-r from-purple-600 to-blue-600 text-white" data-testid="report-cta">
+        <Card className="mt-8 bg-slate-900 text-white" data-testid="report-cta">
           <CardContent className="pt-6">
             <div className="text-center">
               <AlertCircle className="w-12 h-12 mx-auto mb-4" />
