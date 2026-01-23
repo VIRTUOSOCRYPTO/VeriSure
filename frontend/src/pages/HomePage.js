@@ -29,6 +29,14 @@ const HomePage = () => {
                 <HelpCircle className="w-6 h-6" />
               </button>
               <button
+                onClick={() => navigate('/public/scam-trends')}
+                className="bg-purple-600 text-white hover:bg-purple-700 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                data-testid="trends-btn"
+              >
+                <TrendingUp className="w-4 h-4 inline mr-1" />
+                Trends
+              </button>
+              <button
                 onClick={() => navigate('/batch')}
                 className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
                 data-testid="batch-btn"
