@@ -107,14 +107,14 @@ const OnboardingTutorial = ({ onComplete }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+      <div className="relative bg-[#F8FAFC] rounded-sm shadow-2xl max-w-2xl w-full mx-4 overflow-hidden border-2 border-slate-200">
         {/* Close button */}
         <button
           onClick={handleSkip}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
+          className="absolute top-4 right-4 p-2 rounded-sm hover:bg-slate-100 transition-colors z-10"
           aria-label="Close tutorial"
         >
-          <X className="w-5 h-5 text-gray-500" />
+          <X className="w-5 h-5 text-slate-500" />
         </button>
 
         {/* Content */}
@@ -122,19 +122,19 @@ const OnboardingTutorial = ({ onComplete }) => {
           {/* Progress bar */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">
+              <span className="text-sm font-mono font-medium text-slate-600 uppercase tracking-wider">
                 Step {currentStep + 1} of {steps.length}
               </span>
               <button
                 onClick={handleSkip}
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                className="text-sm text-slate-600 hover:text-slate-900 font-mono uppercase tracking-wider font-medium"
               >
                 Skip tutorial
               </button>
             </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-slate-200 rounded-sm overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-300"
+                className="h-full bg-slate-900 transition-all duration-300"
                 style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
               />
             </div>
@@ -146,12 +146,12 @@ const OnboardingTutorial = ({ onComplete }) => {
           </div>
 
           {/* Title */}
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
+          <h2 className="text-3xl font-mono font-bold text-slate-900 text-center mb-4">
             {step.title}
           </h2>
 
           {/* Description */}
-          <p className="text-lg text-gray-600 text-center mb-6">
+          <p className="text-lg font-sans text-slate-600 text-center mb-6">
             {step.description}
           </p>
 
@@ -160,8 +160,8 @@ const OnboardingTutorial = ({ onComplete }) => {
             <div className="mb-6">
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {step.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-gray-700">
-                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <li key={idx} className="flex items-start gap-2 font-sans text-slate-700">
+                    <Check className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -174,10 +174,10 @@ const OnboardingTutorial = ({ onComplete }) => {
             <button
               onClick={handlePrevious}
               disabled={currentStep === 0}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-sm font-mono font-medium uppercase tracking-wider transition-colors ${
                 currentStep === 0
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                  : 'bg-white border-2 border-slate-200 text-slate-900 hover:bg-slate-50'
               }`}
             >
               <ArrowLeft className="w-4 h-4" />
@@ -191,10 +191,10 @@ const OnboardingTutorial = ({ onComplete }) => {
                   onClick={() => setCurrentStep(idx)}
                   className={`w-2 h-2 rounded-full transition-all ${
                     idx === currentStep
-                      ? 'bg-purple-600 w-8'
+                      ? 'bg-slate-900 w-8'
                       : idx < currentStep
-                      ? 'bg-purple-300'
-                      : 'bg-gray-300'
+                      ? 'bg-slate-400'
+                      : 'bg-slate-300'
                   }`}
                   aria-label={`Go to step ${idx + 1}`}
                 />
@@ -203,7 +203,7 @@ const OnboardingTutorial = ({ onComplete }) => {
 
             <button
               onClick={handleNext}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-sm font-mono font-medium uppercase tracking-wider hover:bg-slate-800 transition-colors"
             >
               {isLastStep ? (
                 <>
@@ -220,9 +220,9 @@ const OnboardingTutorial = ({ onComplete }) => {
           </div>
         </div>
 
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-400/20 to-blue-400/20 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-400/20 to-purple-400/20 rounded-full blur-3xl -z-10 transform -translate-x-1/2 translate-y-1/2" />
+        {/* Decorative elements - Subtle slate tones */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-slate-300/10 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-slate-300/10 rounded-full blur-3xl -z-10 transform -translate-x-1/2 translate-y-1/2" />
       </div>
     </div>
   );
