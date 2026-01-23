@@ -5,11 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Toast from 'react-native-toast-message';
 import Share from 'react-native-share';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import RNFS from 'react-native-fs';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getRiskColor, getRiskIcon } from '../../utils/riskUtils';
 import { formatDate } from '../../utils/dateUtils';
@@ -37,12 +41,191 @@ const ResultScreen = ({ route }) => {
     }
   };
 
-  const handleExportPDF = () => {
-    Toast.show({
-      type: 'info',
-      text1: 'Export PDF',
-      text2: 'PDF export feature coming soon',
-    });
+  const handleExportPDF = async () => {
+    try {
+      // Request storage permission on Android
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Toast.show({
+            type: 'error',
+            text1: 'Permission Denied',
+            text2: 'Storage permission is required to save PDF',
+          });
+          return;
+        }
+      }
+
+      const riskColor = getRiskColor(report.risk_level, colors);
+      
+      // Generate HTML content
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>VeriSure Analysis Report</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              color: #333;
+            }
+            .header {
+              background: linear-gradient(135deg, #7C3AED, #6D28D9);
+              color: white;
+              padding: 30px;
+              border-radius: 12px;
+              text-align: center;
+              margin-bottom: 30px;
+            }
+            .risk-badge {
+              background: ${riskColor};
+              color: white;
+              padding: 10px 20px;
+              border-radius: 8px;
+              font-size: 24px;
+              font-weight: bold;
+              display: inline-block;
+              margin: 10px 0;
+            }
+            .section {
+              margin-bottom: 25px;
+              padding: 20px;
+              background: #f9f9f9;
+              border-radius: 8px;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #7C3AED;
+              margin-bottom: 15px;
+            }
+            .pattern-item, .recommendation-item {
+              margin: 10px 0;
+              padding-left: 20px;
+            }
+            .evidence-item {
+              background: white;
+              padding: 15px;
+              margin: 10px 0;
+              border-radius: 6px;
+              border-left: 4px solid #7C3AED;
+            }
+            .metadata {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 2px solid #e0e0e0;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 40px;
+              color: #666;
+              font-size: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>🛡️ VeriSure</h1>
+            <h2>AI Scam Detection Report</h2>
+            <div class="risk-badge">${report.risk_level?.toUpperCase() || 'UNKNOWN'} RISK</div>
+            <p style="margin-top: 15px; font-size: 16px;">${report.verdict || 'Analysis Complete'}</p>
+          </div>
+
+          <div class="section">
+            <div class="section-title">📋 Summary</div>
+            <p>${report.summary || 'Analysis completed successfully.'}</p>
+          </div>
+
+          ${report.scam_patterns && report.scam_patterns.length > 0 ? `
+          <div class="section">
+            <div class="section-title">⚠️ Detected Patterns</div>
+            ${report.scam_patterns.map(pattern => `
+              <div class="pattern-item">• ${pattern}</div>
+            `).join('')}
+          </div>
+          ` : ''}
+
+          ${report.evidence && report.evidence.length > 0 ? `
+          <div class="section">
+            <div class="section-title">📄 Evidence</div>
+            ${report.evidence.map(item => `
+              <div class="evidence-item">
+                <strong>${item.title}</strong>
+                <p>${item.description}</p>
+                ${item.confidence ? `<p><em>Confidence: ${item.confidence}%</em></p>` : ''}
+              </div>
+            `).join('')}
+          </div>
+          ` : ''}
+
+          ${report.recommendations && report.recommendations.length > 0 ? `
+          <div class="section">
+            <div class="section-title">💡 Recommendations</div>
+            ${report.recommendations.map(rec => `
+              <div class="recommendation-item">✓ ${rec}</div>
+            `).join('')}
+          </div>
+          ` : ''}
+
+          <div class="metadata">
+            <div>
+              <strong>Analysis Date:</strong><br>
+              ${formatDate(report.timestamp)}
+            </div>
+            <div>
+              <strong>Content Type:</strong><br>
+              ${report.input_type || 'Unknown'}
+            </div>
+            <div>
+              <strong>Report ID:</strong><br>
+              ${report.report_id || 'N/A'}
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Generated by VeriSure - AI-Powered Scam Detection Platform</p>
+            <p>This report is confidential and for the intended recipient only.</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Generate PDF
+      const options = {
+        html: htmlContent,
+        fileName: `VeriSure_Report_${Date.now()}`,
+        directory: Platform.OS === 'android' ? 'Documents' : 'Documents',
+      };
+
+      const file = await RNHTMLtoPDF.convert(options);
+      
+      Toast.show({
+        type: 'success',
+        text1: 'PDF Generated',
+        text2: 'Report exported successfully',
+      });
+
+      // Share the PDF
+      await Share.open({
+        url: `file://${file.filePath}`,
+        type: 'application/pdf',
+        title: 'Share VeriSure Report',
+      });
+    } catch (error) {
+      if (error.message !== 'User did not share') {
+        Toast.show({
+          type: 'error',
+          text1: 'Export Failed',
+          text2: error.message || 'Could not generate PDF',
+        });
+      }
+    }
   };
 
   const riskColor = getRiskColor(report.risk_level, colors);
