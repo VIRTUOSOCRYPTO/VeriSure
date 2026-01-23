@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeriSure - Settings</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    
+    .content {
+      padding: 24px;
+    }
+    
+    .section {
+      margin-bottom: 32px;
+    }
+    
+    .section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    
+    .section-description {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+    
+    input[type="text"],
+    input[type="url"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    input[type="text"]:focus,
+    input[type="url"]:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+      flex: 1;
+    }
+    
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+    
+    .status-message {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-top: 16px;
+      display: none;
+    }
+    
+    .status-message.success {
+      background: #f0fdf4;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+      display: block;
+    }
+    
+    .status-message.error {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      display: block;
+    }
+    
+    .info-box {
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 13px;
+      color: #1e40af;
+      line-height: 1.6;
+    }
+    
+    .features-list {
+      list-style: none;
+      font-size: 13px;
+    }
+    
+    .features-list li {
+      padding: 8px 0;
+      padding-left: 24px;
+      position: relative;
+      color: #4b5563;
+    }
+    
+    .features-list li::before {
+      content: "✔️";
+      position: absolute;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      <h1>VeriSure Settings</h1>
+    </div>
+    
+    <div class="content">
+      <!-- API Configuration -->
+      <div class="section">
+        <h2 class="section-title">API Configuration</h2>
+        <p class="section-description">
+          Configure the VeriSure API endpoint. By default, it connects to your local instance.
+          If you're using a deployed instance, update the URL below.
+        </p>
+        
+        <div class="form-group">
+          <label for="apiUrl">API Endpoint URL</label>
+          <input 
+            type="url" 
+            id="apiUrl" 
+            placeholder="http://localhost:8001"
+            data-testid="api-url-input"
+          />
+          <p class="hint">Example: https://your-verisure-app.com or http://localhost:8001</p>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+      </div>
+      
+      <!-- Features -->
+      <div class="section">
+        <h2 class="section-title">Extension Features</h2>
+        <ul class="features-list">
+          <li>Right-click context menu for selected text</li>
+          <li>Right-click context menu for images</li>
+          <li>Quick analysis popup interface</li>
+          <li>Full page text scanning</li>
+          <li>Inline result display on web pages</li>
+          <li>Analysis history (last 50 items)</li>
+          <li>Browser notifications</li>
+          <li>Risk level badges</li>
+        </ul>
+      </div>
+      
+      <!-- Usage Info -->
+      <div class="section">
+        <h2 class="section-title">How to Use</h2>
+        <div class="info-box">
+          <strong>Quick Analysis:</strong><br>
+          Click the VeriSure icon in your browser toolbar to analyze any text or URL.<br><br>
+          
+          <strong>Context Menu:</strong><br>
+          Right-click on selected text or images and choose "Analyze with VeriSure".<br><br>
+          
+          <strong>Inline Analysis:</strong><br>
+          Select text on any webpage and click the floating "Analyze" button that appears.
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="button-group">
+        <button class="btn-primary" id="saveBtn" data-testid="save-button">Save Settings</button>
+        <button class="btn-secondary" id="resetBtn" data-testid="reset-button">Reset to Default</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>
