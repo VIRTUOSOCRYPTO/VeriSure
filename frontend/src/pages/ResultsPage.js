@@ -124,7 +124,7 @@ const ResultsPage = () => {
                     toast.error("Failed to download PDF");
                   }
                 }}
-                className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-4 py-2 font-mono text-sm flex items-center gap-2 transition-all min-h-[44px]"
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-4 py-2 font-mono text-sm flex items-center gap-2 transition-all min-h-[44px]"
                 data-testid="export-pdf-btn"
               >
                 <FileText className="w-4 h-4" />
