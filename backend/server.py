@@ -106,15 +106,22 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="VeriSure API",
     description="Advanced AI Origin & Scam Forensics with Caching, Rate Limiting, and PDF Export",
-    version="2.0.0"
+    version="3.0.0"  # Updated version with API versioning
 )
 
 # Add rate limit exception handler
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+# Create a router with the /api/v1 prefix (API versioning implemented)
+api_router = APIRouter(prefix="/api/v1")
+
+# Backward compatibility: redirect /api/* to /api/v1/*
+@app.get("/api/{path:path}")
+async def redirect_to_v1(path: str):
+    """Redirect old /api endpoints to /api/v1 for backward compatibility"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=f"/api/v1/{path}", status_code=301)
 
 # Log API key for users
 logger.info(f"🔑 Default API Key: {DEFAULT_API_KEY}")
