@@ -30,6 +30,18 @@ from auth import get_api_key, get_optional_api_key, DEFAULT_API_KEY
 from celery_tasks import celery_app, process_video_analysis, process_audio_analysis
 from celery.result import AsyncResult
 
+# Phase 6: Security & Compliance imports
+from models import (
+    UserRegistration, UserLogin, TokenResponse, RefreshTokenRequest,
+    UserProfile, UserUpdate, PasswordChange, UserRole,
+    AuditLogEntry, ConsentRecord, DataExportRequest
+)
+from auth_jwt import JWTManager, get_current_user, get_optional_user, require_role
+from password_utils import hash_password, verify_password, validate_password_strength
+from audit_logger import AuditLogger
+from encryption import encryption_manager, encrypt_sensitive_fields, decrypt_sensitive_fields
+from gdpr_compliance import GDPRManager
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -51,6 +63,11 @@ cache_manager = CacheManager(
 
 # Initialize PDF generator
 pdf_generator = PDFReportGenerator()
+
+# Phase 6: Initialize security systems
+jwt_manager = None  # Initialized after DB connection
+audit_logger = None  # Initialized after DB connection
+gdpr_manager = None  # Initialized after DB connection
 
 # MongoDB connection with connection pooling (Phase 3 optimization)
 mongo_url = os.environ['MONGO_URL']
@@ -82,6 +99,40 @@ api_router = APIRouter(prefix="/api")
 
 # Log API key for users
 logger.info(f"🔑 Default API Key: {DEFAULT_API_KEY}")
+
+# Phase 6: Initialize security managers with DB
+jwt_manager = JWTManager(db)
+audit_logger = AuditLogger(db)
+gdpr_manager = GDPRManager(db)
+logger.info("✅ Security systems initialized (JWT, Audit, GDPR)")
+
+# Create indexes for performance
+async def create_indexes():
+    """Create database indexes for security collections"""
+    try:
+        # Users collection
+        await db.users.create_index("email", unique=True)
+        await db.users.create_index("user_id", unique=True)
+        
+        # Audit logs
+        await db.audit_logs.create_index([("timestamp", -1)])
+        await db.audit_logs.create_index("user_id")
+        await db.audit_logs.create_index("action")
+        
+        # Refresh tokens
+        await db.refresh_tokens.create_index("token_jti", unique=True)
+        await db.refresh_tokens.create_index("user_id")
+        await db.refresh_tokens.create_index("expires_at")
+        
+        logger.info("✅ Database indexes created")
+    except Exception as e:
+        logger.warning(f"Index creation: {str(e)}")
+
+# Schedule index creation at startup
+@app.on_event("startup")
+async def startup_event():
+    await create_indexes()
+    logger.info("🚀 VeriSure API started with enhanced security")
 
 
 # Models
@@ -1601,6 +1652,12 @@ app.include_router(api_router)
 # Import and include WhatsApp router
 from whatsapp_routes import whatsapp_router
 app.include_router(whatsapp_router, prefix="/api")
+
+# Phase 6: Include authentication and security routers
+from auth_routes import auth_router, user_router, admin_router
+app.include_router(auth_router, prefix="/api")
+app.include_router(user_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
