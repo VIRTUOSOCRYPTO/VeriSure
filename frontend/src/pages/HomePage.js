@@ -30,7 +30,7 @@ const HomePage = () => {
               </button>
               <button
                 onClick={() => navigate('/public/scam-trends')}
-                className="bg-purple-600 text-white hover:bg-purple-700 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[44px]"
                 data-testid="trends-btn"
               >
                 <TrendingUp className="w-4 h-4 inline mr-1" />
@@ -38,7 +38,7 @@ const HomePage = () => {
               </button>
               <button
                 onClick={() => navigate('/batch')}
-                className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all min-h-[44px]"
+                className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-6 py-3 font-mono text-sm uppercase tracking-wider transition-all active:scale-95 min-h-[44px]"
                 data-testid="batch-btn"
               >
                 Batch
@@ -93,7 +93,7 @@ const HomePage = () => {
                 </button>
                 <button
                   onClick={() => navigate('/batch')}
-                  className="bg-blue-600 text-white hover:bg-blue-700 rounded-sm px-8 py-4 font-mono text-base uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[56px]"
+                  className="bg-slate-900 text-white hover:bg-slate-800 rounded-sm px-8 py-4 font-mono text-base uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[56px]"
                   data-testid="batch-analysis-btn"
                 >
                   <Layers className="w-5 h-5" />
